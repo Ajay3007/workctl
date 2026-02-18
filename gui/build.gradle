@@ -1,0 +1,56 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.14'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+javafx {
+    version = "21"
+    modules = [
+            'javafx.controls',
+            'javafx.fxml',
+            'javafx.web'
+    ]
+}
+
+dependencies {
+    implementation project(':core')
+    implementation project(':config')
+    implementation 'org.commonmark:commonmark:0.21.0'
+    implementation 'org.commonmark:commonmark-ext-gfm-tables:0.21.0'
+}
+
+application {
+    mainClass = 'com.workctl.gui.WorkctlApp'
+    applicationName = 'workctl-gui'
+}
+
+def guiReleaseDir = file("$rootDir/build/release/workctl-gui")
+def javafxLibPath = "C:/Softwares/javafx-sdk-21/lib"
+
+tasks.register("cleanGuiImage", Delete) {
+    delete guiReleaseDir
+}
+
+tasks.register("packageApp", Exec) {
+
+    dependsOn installDist
+    dependsOn cleanGuiImage
+
+    commandLine "jpackage",
+            "--type", "app-image",
+            "--name", "workctl-gui",
+            "--app-version", version,
+            "--input", "$buildDir/install/workctl-gui/lib",
+            "--main-jar", "gui-${version}.jar",
+            "--main-class", "com.workctl.gui.WorkctlApp",
+            "--dest", "$rootDir/build/release",
+            "--module-path", "$buildDir/install/workctl-gui/lib;${javafxLibPath}",
+            "--add-modules", "ALL-MODULE-PATH",
+            "--win-shortcut",
+            "--win-menu"
+}

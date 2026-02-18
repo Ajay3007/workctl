@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="10" style="-fx-padding: 10" xmlns="http://javafx.com/javafx/17" 
+      xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.workctl.gui.controller.ProjectController">
+    <Label style="-fx-font-size: 16; -fx-font-weight: bold" text="Project Management"/>
+    
+    <HBox spacing="10">
+        <Label text="Project Name:" style="-fx-min-width: 100"/>
+        <TextField fx:id="projectNameField" style="-fx-pref-width: 200"/>
+    </HBox>
+    
+    <HBox spacing="10">
+        <Label text="Description:" style="-fx-min-width: 100"/>
+        <TextField fx:id="projectDescriptionField" style="-fx-pref-width: 200"/>
+    </HBox>
+    
+    <Button text="Create Project" onAction="#createProject"/>
+    
+    <Label text="Projects:" style="-fx-font-weight: bold"/>
+    <ListView fx:id="projectListView" style="-fx-pref-height: 300"/>
+</VBox>

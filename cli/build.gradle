@@ -1,0 +1,49 @@
+plugins {
+    id 'application'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    implementation project(':core')
+    implementation project(':config')
+    implementation 'info.picocli:picocli:4.7.5'
+}
+
+application {
+    mainClass = 'com.workctl.cli.WorkctlCLI'
+    applicationName = 'workctl'
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': application.mainClass.get()
+        )
+    }
+}
+
+def cliReleaseDir = file("$rootDir/build/release/workctl")
+
+tasks.register("cleanCliImage", Delete) {
+    delete cliReleaseDir
+}
+
+tasks.register("packageApp", Exec) {
+
+    dependsOn installDist
+    dependsOn cleanCliImage
+
+    commandLine "jpackage",
+            "--type", "app-image",
+            "--name", "workctl",
+            "--app-version", version,
+            "--input", "$buildDir/install/workctl/lib",
+            "--main-jar", "cli-${version}.jar",
+            "--main-class", "com.workctl.cli.WorkctlCLI",
+            "--dest", "$rootDir/build/release",
+            "--win-console"
+}

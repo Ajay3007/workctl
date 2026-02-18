@@ -1,0 +1,122 @@
+/*
+ * Root build.gradle for workctl
+ * Multi-module build configuration
+ */
+
+plugins {
+    // intentionally empty
+}
+
+/* =====================================================
+   Global Project Metadata
+   ===================================================== */
+
+allprojects {
+    group = 'com.workctl'
+    version = '0.1.0'
+}
+
+/* =====================================================
+   Common Configuration For All Subprojects
+   ===================================================== */
+
+subprojects {
+
+    repositories {
+        mavenCentral()
+    }
+
+}
+
+/* =====================================================
+   Distribution Tasks
+   ===================================================== */
+
+/**
+ * Build both CLI and GUI distributions
+ */
+tasks.register("distAll") {
+
+    group = "distribution"
+    description = "Build CLI and GUI distributables"
+
+    dependsOn(":cli:installDist")
+    dependsOn(":gui:installDist")
+}
+
+
+/**
+ * Create structured release directory
+ *
+ * Output:
+ * build/distributions/workctl-<version>/
+ *    ├── workctl-cli/
+ *    └── workctl-gui/
+ */
+tasks.register("packageRelease", Copy) {
+
+    group = "distribution"
+    description = "Create unified release folder"
+
+    dependsOn("distAll")
+
+    from("cli/build/install/cli") {
+        into("workctl-cli")
+    }
+
+    from("gui/build/install/gui") {
+        into("workctl-gui")
+    }
+
+    into("$buildDir/distributions/workctl-${version}")
+}
+
+
+def releaseDir = file("$buildDir/release")
+
+tasks.register("releaseAll") {
+    dependsOn ":cli:packageApp"
+    dependsOn ":gui:packageApp"
+
+    doLast {
+        println "\n✓ CLI + GUI Release Built Successfully"
+        println "Location: build/release"
+    }
+}
+
+tasks.register("zipReleases") {
+
+    group = "distribution"
+    description = "Create portable ZIP releases"
+
+    dependsOn releaseAll
+
+    doLast {
+
+        def cliSource = file("$releaseDir/workctl")
+        def guiSource = file("$releaseDir/workctl-gui")
+
+        if (!cliSource.exists()) {
+            throw new GradleException("CLI release folder not found: $cliSource")
+        }
+
+        if (!guiSource.exists()) {
+            throw new GradleException("GUI release folder not found: $guiSource")
+        }
+
+        ant.zip(
+                destfile: "$releaseDir/workctl-cli-${version}.zip",
+                basedir: cliSource
+        )
+
+        ant.zip(
+                destfile: "$releaseDir/workctl-gui-${version}.zip",
+                basedir: guiSource
+        )
+
+        println "======================================"
+        println "✓ Portable Release Created Successfully"
+        println "Location: ${releaseDir}"
+        println "======================================"
+    }
+}

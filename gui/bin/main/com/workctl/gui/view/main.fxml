@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.workctl.gui.controller.MainController">
+
+    <left>
+        <VBox spacing="10" prefWidth="250">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+
+            <Label text="Projects"
+                   style="-fx-font-size: 16; -fx-font-weight: bold;" />
+
+            <ListView fx:id="projectListView"/>
+        </VBox>
+    </left>
+
+    <center>
+        <TabPane>
+            <Tab text="Tasks">
+                <fx:include source="tasks.fxml" fx:id="tasksView"/>
+            </Tab>
+
+            <Tab text="Logs">
+                <fx:include source="logs.fxml" fx:id="logsView"/>
+            </Tab>
+
+            <Tab text="Stats">
+                <fx:include source="stats.fxml" fx:id="statsView"/>
+            </Tab>
+
+        </TabPane>
+    </center>
+
+</BorderPane>

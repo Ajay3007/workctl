@@ -1,0 +1,33 @@
+package com.workctl.cli;
+
+import com.workctl.cli.commands.*;
+import picocli.CommandLine;
+
+@CommandLine.Command(
+        name = "workctl",
+        mixinStandardHelpOptions = true,
+        version = "workctl 0.1.0",
+        subcommands = {
+                InitCommand.class,
+                ProjectCommand.class,
+                LogCommand.class,
+                WeeklyCommand.class,
+                SearchCommand.class,
+                TaskCommand.class,
+                ConfigCommand.class,
+                StatsCommand.class,
+                InsightCommand.class
+        }
+)
+public class WorkctlCLI implements Runnable {
+
+    @Override
+    public void run() {
+        System.out.println("Use 'workctl --help' to see available commands.");
+    }
+
+    public static void main(String[] args) {
+        int exitCode = new CommandLine(new WorkctlCLI()).execute(args);
+        System.exit(exitCode);
+    }
+}
