@@ -133,7 +133,7 @@ pluginManagement {
 #### Step 1 — Build everything first:
 
 ```bash
-bash./gradlew clean build
+./gradlew clean build
 ```
 
 #### Step 2 — Package CLI:
