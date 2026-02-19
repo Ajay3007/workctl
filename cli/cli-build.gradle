@@ -1,0 +1,136 @@
+/*
+ * cli/build.gradle
+ * ─────────────────────────────────────────────
+ * Picocli-based command-line interface.
+ *
+ * Distribution options:
+ *   ./gradlew :cli:installDist
+ *       → cli/build/install/workctl/bin/workctl.bat  (Windows)
+ *         cli/build/install/workctl/bin/workctl       (Linux/macOS)
+ *       Requires Java on target machine.
+ *
+ *   ./gradlew :cli:shadowJar
+ *       → cli/build/libs/workctl-<version>-all.jar
+ *       Single fat JAR with all dependencies embedded.
+ *       Run with: java -jar workctl-all.jar <command>
+ *       Requires Java on target machine (but no classpath setup).
+ *
+ *   ./gradlew packageCli   (root task)
+ *       → build/release/workctl/workctl.exe
+ *       Fully self-contained native app via jpackage.
+ *       NO Java required on target machine.
+ */
+
+plugins {
+    id 'application'
+
+    /*
+     * Shadow plugin — produces a fat JAR with all dependencies bundled.
+     * This is the easiest way to share the CLI with someone who has Java.
+     * Version 8.x works with Gradle 8.x; use 7.x for Gradle 7.x.
+     */
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    implementation project(':core')
+    implementation project(':config')
+    implementation project(':agent')
+    implementation 'info.picocli:picocli:4.7.5'
+}
+
+application {
+    mainClass       = 'com.workctl.cli.WorkctlCLI'
+    applicationName = 'workctl'
+}
+
+/* ── JAR manifest ────────────────────────────────────────── */
+
+jar {
+    manifest {
+        attributes(
+            'Main-Class':       application.mainClass.get(),
+            'Implementation-Title':   'workctl CLI',
+            'Implementation-Version': version
+        )
+    }
+}
+
+/* ── Shadow (fat) JAR ────────────────────────────────────── */
+
+shadowJar {
+    archiveBaseName     = 'workctl'
+    archiveClassifier   = 'all'     // produces workctl-<version>-all.jar
+    archiveVersion      = version
+
+    manifest {
+        attributes 'Main-Class': application.mainClass.get()
+    }
+
+    // Merge service descriptors (needed for Picocli's annotation processor)
+    mergeServiceFiles()
+
+    // Exclude signature files to avoid JAR signing conflicts
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+}
+
+// Make 'build' also produce the shadow JAR
+build.dependsOn shadowJar
+
+/* ── installDist customisation ───────────────────────────── */
+
+/*
+ * installDist produces:
+ *   cli/build/install/workctl/
+ *     bin/workctl          ← Unix launcher
+ *     bin/workctl.bat      ← Windows launcher
+ *     lib/                 ← all JARs
+ *
+ * This is still the fastest way to run during development.
+ * For portability without jpackage, ZIP this folder and share it —
+ * recipients need Java 17+ but don't need Gradle or IntelliJ.
+ */
+
+distributions {
+    main {
+        distributionBaseName = 'workctl'
+    }
+}
+
+/* ── jpackage is handled in root build.gradle ────────────── */
+/*
+ * Run: ./gradlew packageCli
+ * Output: build/release/workctl/workctl.exe
+ * No Java needed on target machine.
+ */
+
+/* ── Convenience task: zip the installDist output ───────── */
+/*
+ * Produces workctl-<version>-dist.zip from the installDist folder.
+ * Useful for distributing to machines that already have Java 17+.
+ * Smaller than the jpackage output (no bundled JRE).
+ */
+tasks.register('zipDist', Zip) {
+    group           = 'workctl distribution'
+    description     = 'Zip installDist output (requires Java 17+ on target)'
+    dependsOn       installDist
+
+    archiveFileName             = "workctl-${version}-dist.zip"
+    destinationDirectory        = layout.buildDirectory.dir('distributions')
+
+    from(installDist.destinationDir)
+    into("workctl-${version}")
+
+    doLast {
+        println "✓ CLI dist zip → cli/build/distributions/workctl-${version}-dist.zip"
+        println "  Recipients need Java 17+ but no Gradle/IDE."
+        println "  Run: workctl-${version}/bin/workctl.bat <command>"
+    }
+}

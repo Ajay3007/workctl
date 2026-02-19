@@ -15,36 +15,140 @@ dependencies {
 }
 
 application {
-    mainClass = 'com.workctl.cli.WorkctlCLI'
+    mainClass       = 'com.workctl.cli.WorkctlCLI'
     applicationName = 'workctl'
 }
 
 jar {
     manifest {
         attributes(
-                'Main-Class': application.mainClass.get()
+                'Main-Class':             application.mainClass.get(),
+                'Implementation-Title':   'workctl CLI',
+                'Implementation-Version': version
         )
     }
 }
 
-def cliReleaseDir = file("$rootDir/build/release/workctl")
-
-tasks.register("cleanCliImage", Delete) {
-    delete cliReleaseDir
+distributions {
+    main {
+        distributionBaseName = 'workctl'
+    }
 }
 
-tasks.register("packageApp", Exec) {
+// ── OS detection ──────────────────────────────────────────────────
 
-    dependsOn installDist
-    dependsOn cleanCliImage
+ext {
+    isWindows    = org.gradle.internal.os.OperatingSystem.current().isWindows()
+    isMacOS      = org.gradle.internal.os.OperatingSystem.current().isMacOsX()
+    platformSuffix = isWindows ? "windows" : isMacOS ? "macos" : "linux"
+}
 
-    commandLine "jpackage",
-            "--type", "app-image",
-            "--name", "workctl",
-            "--app-version", version,
-            "--input", "$buildDir/install/workctl/lib",
-            "--main-jar", "cli-${version}.jar",
-            "--main-class", "com.workctl.cli.WorkctlCLI",
-            "--dest", "$rootDir/build/release",
-            "--win-console"
+// ── Delete previous package (cross-platform) ─────────────────────
+
+tasks.register('cleanPackage') {
+    group       = 'workctl distribution'
+    description = 'Delete previous jpackage output'
+    doLast {
+        def appDir = file("${rootDir}/build/release/workctl")
+        if (appDir.exists()) {
+            if (isWindows) {
+                exec { commandLine 'cmd', '/c', "rmdir /s /q \"${appDir.absolutePath}\"" }
+            } else {
+                exec { commandLine 'rm', '-rf', appDir.absolutePath }
+            }
+            println "  Deleted: ${appDir}"
+        }
+        file("${rootDir}/build/release").mkdirs()
+    }
+}
+
+// ── Package as native app (cross-platform) ───────────────────────
+//
+// Windows → build/release/workctl/workctl.exe
+// macOS   → build/release/workctl/workctl
+// Linux   → build/release/workctl/workctl
+//
+// Run:    ./gradlew :cli:packageNative
+// Target machine needs: nothing (no Java required)
+
+tasks.register('packageNative', Exec) {
+    group       = 'workctl distribution'
+    description = 'Package CLI as native executable — no Java needed on target machine'
+    dependsOn   installDist, cleanPackage
+
+    doFirst {
+        def outDir = file("${rootDir}/build/release")
+        outDir.mkdirs()
+        def libDir = file("${buildDir}/install/workctl/lib").absolutePath
+
+        def cmd = [
+                'jpackage',
+                '--type',         'app-image',
+                '--name',         'workctl',
+                '--app-version',  version,
+                '--input',        libDir,
+                '--main-jar',     "cli-${version}.jar",
+                '--main-class',   application.mainClass.get(),
+                '--dest',         outDir.absolutePath,
+                '--win-console',  // keeps terminal output visible (ignored on macOS/Linux)
+        ]
+
+        // macOS: required bundle identifier
+        if (isMacOS) {
+            cmd += ['--mac-package-identifier', 'com.workctl.cli']
+        }
+
+        commandLine = cmd
+        println "  Building CLI for: ${isWindows ? 'Windows' : isMacOS ? 'macOS' : 'Linux'}"
+    }
+
+    doLast {
+        def exe = isWindows ? 'workctl/workctl.exe' : 'workctl/workctl'
+        println ""
+        println "✓ CLI packaged → build/release/${exe}"
+        println "  No Java needed on the target machine."
+    }
+}
+
+// ── Zip installDist output (for users who have Java 17+) ─────────
+// Smaller than packageNative (no bundled JRE), but requires Java on target.
+//
+// Run:    ./gradlew :cli:zipDist
+
+tasks.register('zipDist', Zip) {
+    group               = 'workctl distribution'
+    description         = 'Zip installDist output (requires Java 17+ on target)'
+    dependsOn           installDist
+
+    archiveFileName             = "workctl-${version}-dist-${platformSuffix}.zip"
+    destinationDirectory        = layout.buildDirectory.dir('distributions')
+
+    from(installDist.destinationDir)
+    into("workctl-${version}")
+
+    doLast {
+        println "✓ CLI dist → cli/build/distributions/workctl-${version}-dist-${platformSuffix}.zip"
+        println "  Requires Java 17+ on target."
+        println "  Run: workctl-${version}/bin/workctl${isWindows ? '.bat' : ''} <command>"
+    }
+}
+
+// ── Zip the native package for sharing ───────────────────────────
+// Run:    ./gradlew :cli:packageZip
+
+tasks.register('packageZip', Zip) {
+    group               = 'workctl distribution'
+    description         = 'Zip the native CLI package for sharing (no Java needed)'
+    dependsOn           packageNative
+
+    archiveFileName             = "workctl-${version}-${platformSuffix}.zip"
+    destinationDirectory        = layout.buildDirectory.dir('distributions')
+
+    from("${rootDir}/build/release/workctl")
+    into("workctl-${version}")
+
+    doLast {
+        println "✓ CLI zip → cli/build/distributions/workctl-${version}-${platformSuffix}.zip"
+        println "  No Java needed. Extract and run workctl-${version}/workctl${isWindows ? '.exe' : ''}"
+    }
 }

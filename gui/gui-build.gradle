@@ -1,0 +1,255 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+javafx {
+    version = "21"
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.web']
+}
+
+dependencies {
+    implementation project(':core')
+    implementation project(':config')
+    implementation project(':agent')
+    implementation 'org.commonmark:commonmark:0.21.0'
+    implementation 'org.commonmark:commonmark-ext-gfm-tables:0.21.0'
+}
+
+application {
+    mainClass       = 'com.workctl.gui.WorkctlApp'
+    applicationName = 'workctl-gui'
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class':             application.mainClass.get(),
+                'Implementation-Title':   'workctl GUI',
+                'Implementation-Version': version
+        )
+    }
+}
+
+// ── OS detection ──────────────────────────────────────────────────
+
+ext {
+    isWindows = org.gradle.internal.os.OperatingSystem.current().isWindows()
+    isMacOS   = org.gradle.internal.os.OperatingSystem.current().isMacOsX()
+    isLinux   = org.gradle.internal.os.OperatingSystem.current().isLinux()
+
+    // ── JavaFX SDK paths — edit these to match your machine ───────
+    //
+    // Windows: download from https://gluonhq.com/products/javafx/
+    //   SDK  → extract to C:/Softwares/javafx-sdk-21
+    //   jmods→ extract to C:/Softwares/javafx-sdk-21/javafx-jmods-21
+    //
+    // macOS: brew install --cask zulu@21  (includes JavaFX)
+    //   OR download SDK from gluonhq and extract to /Library/javafx-sdk-21
+    //
+    // Linux: download from gluonhq and extract to /opt/javafx-sdk-21
+
+    javafxPaths = [
+            windows: [
+                    jmods:     "C:/Softwares/javafx-sdk-21/javafx-jmods-21",
+                    nativeLib: "C:/Softwares/javafx-sdk-21/bin",
+                    nativeExt: ".dll"
+            ],
+            macos: [
+                    jmods:     "/Library/javafx-sdk-21/javafx-jmods-21",
+                    nativeLib: "/Library/javafx-sdk-21/lib",
+                    nativeExt: ".dylib"
+            ],
+            linux: [
+                    jmods:     "/opt/javafx-sdk-21/javafx-jmods-21",
+                    nativeLib: "/opt/javafx-sdk-21/lib",
+                    nativeExt: ".so"
+            ]
+    ]
+
+    // Select paths for the current OS
+    currentPlatform = isWindows ? javafxPaths.windows
+            : isMacOS   ? javafxPaths.macos
+            :             javafxPaths.linux
+
+    javafxJmods     = currentPlatform.jmods
+    javafxNativeLib = currentPlatform.nativeLib
+    javafxNativeExt = currentPlatform.nativeExt
+
+    // jpackage output type per OS
+    //   Windows → app-image (folder with .exe)
+    //   macOS   → app-image (folder with .app bundle)
+    //   Linux   → app-image (folder with launcher script)
+    // Change to "msi" / "dmg" / "deb" for native installers
+    packageType = isWindows ? "app-image"
+            : isMacOS   ? "app-image"
+            :             "app-image"
+
+    // Executable name per OS
+    packageName = isWindows ? "workctl-gui.exe"
+            : isMacOS   ? "workctl-gui.app"
+            :             "workctl-gui"
+
+    // Output zip name
+    platformSuffix = isWindows ? "windows"
+            : isMacOS   ? "macos"
+            :             "linux"
+}
+
+// ── Delete previous package (cross-platform) ─────────────────────
+
+tasks.register('cleanPackage') {
+    group   = 'workctl distribution'
+    description = 'Delete previous jpackage output'
+
+    doLast {
+        def appDir = file("${rootDir}/build/release/workctl-gui")
+        if (appDir.exists()) {
+            if (isWindows) {
+                // Use cmd rmdir — more reliable than Java delete on Windows
+                exec {
+                    commandLine 'cmd', '/c',
+                            "rmdir /s /q \"${appDir.absolutePath}\""
+                }
+            } else {
+                // Unix rm -rf
+                exec {
+                    commandLine 'rm', '-rf', appDir.absolutePath
+                }
+            }
+            println "  Deleted: ${appDir}"
+        }
+        file("${rootDir}/build/release").mkdirs()
+    }
+}
+
+// ── Package as native app (cross-platform) ───────────────────────
+//
+// Windows → build/release/workctl-gui/workctl-gui.exe
+// macOS   → build/release/workctl-gui/workctl-gui.app
+// Linux   → build/release/workctl-gui/workctl-gui
+//
+// Run:    ./gradlew :gui:packageNative
+// Target machine needs: nothing (no Java, no JavaFX)
+
+tasks.register('packageNative', Exec) {
+    group       = 'workctl distribution'
+    description = 'Package GUI as native app — no Java or JavaFX needed on target machine'
+    dependsOn   installDist, cleanPackage
+
+    doFirst {
+        // Validate JavaFX jmods path exists before trying
+        def jmodsDir = file(javafxJmods)
+        if (!jmodsDir.exists()) {
+            throw new GradleException(
+                    "\n\n  JavaFX jmods not found at: ${javafxJmods}\n" +
+                            "  Edit gui/build.gradle → ext.javafxPaths and set the correct path\n" +
+                            "  for your OS. Download jmods from: https://gluonhq.com/products/javafx/\n"
+            )
+        }
+
+        def outDir = file("${rootDir}/build/release")
+        outDir.mkdirs()
+        def libDir = file("${buildDir}/install/workctl-gui/lib").absolutePath
+
+        def cmd = [
+                'jpackage',
+                '--type',         packageType,
+                '--name',         'workctl-gui',
+                '--app-version',  version,
+                '--input',        libDir,
+                '--main-jar',     "gui-${version}.jar",
+                '--main-class',   application.mainClass.get(),
+                '--dest',         outDir.absolutePath,
+                '--module-path',  javafxJmods,
+                '--add-modules',  'javafx.controls,javafx.fxml,javafx.web',
+                '--java-options', '--add-opens=java.base/java.lang=ALL-UNNAMED',
+                '--java-options', '--add-opens=java.base/java.io=ALL-UNNAMED',
+                '--java-options', '--add-exports=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED',
+        ]
+
+        // macOS: set bundle identifier (required for .app bundles)
+        if (isMacOS) {
+            cmd += ['--mac-package-identifier', 'com.workctl.gui']
+        }
+
+        // Add icon if present (use .icns on macOS, .ico on Windows, .png on Linux)
+        def iconExt  = isWindows ? 'ico' : isMacOS ? 'icns' : 'png'
+        def iconFile = file("src/main/resources/icon.${iconExt}")
+        if (iconFile.exists()) {
+            cmd += ['--icon', iconFile.absolutePath]
+        }
+
+        commandLine = cmd
+        println "  Building for: ${isWindows ? 'Windows' : isMacOS ? 'macOS' : 'Linux'}"
+        println "  jmods path:   ${javafxJmods}"
+        println "  Input JARs:   ${libDir}"
+    }
+
+    // Copy native libraries (.dll / .dylib / .so) into the bundled runtime
+    doLast {
+        def nativeSrc  = file(javafxNativeLib)
+        def runtimeBin = isWindows
+                ? file("${rootDir}/build/release/workctl-gui/runtime/bin")
+                : file("${rootDir}/build/release/workctl-gui/runtime/lib")  // macOS/Linux use lib/
+
+        if (runtimeBin.exists() && nativeSrc.exists()) {
+            println "  Copying JavaFX native libs (${javafxNativeExt}) → ${runtimeBin.name}/"
+            nativeSrc.listFiles().each { f ->
+                if (f.name.endsWith(javafxNativeExt)) {
+                    def dest = new File(runtimeBin, f.name)
+                    if (!dest.exists()) {
+                        java.nio.file.Files.copy(
+                                f.toPath(), dest.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                        )
+                    }
+                }
+            }
+            println "  Done."
+        }
+
+        println ""
+        println "✓ Packaged → build/release/workctl-gui/${packageName}"
+        println "  No Java or JavaFX needed on the target machine."
+    }
+}
+
+// ── Zip for sharing ───────────────────────────────────────────────
+// Windows: workctl-gui-1.0.0-windows.zip
+// macOS:   workctl-gui-1.0.0-macos.zip
+// Linux:   workctl-gui-1.0.0-linux.zip
+//
+// Run:    ./gradlew :gui:packageZip
+
+tasks.register('packageZip', Zip) {
+    group               = 'workctl distribution'
+    description         = 'Zip the native GUI package for sharing'
+    dependsOn           packageNative
+
+    archiveFileName             = "workctl-gui-${version}-${platformSuffix}.zip"
+    destinationDirectory        = layout.buildDirectory.dir('distributions')
+
+    from("${rootDir}/build/release/workctl-gui")
+    into("workctl-gui-${version}")
+
+    doLast {
+        println "✓ ZIP → gui/build/distributions/workctl-gui-${version}-${platformSuffix}.zip"
+        println "  Recipients extract and run workctl-gui-${version}/${packageName}"
+        println "  No Java or JavaFX needed."
+    }
+}
+
+tasks.named('run') {
+    doFirst {
+        println "──────────────────────────────────────────────────────"
+        println "  Launching workctl GUI (development mode)"
+        println "  OS: ${isWindows ? 'Windows' : isMacOS ? 'macOS' : 'Linux'}"
+        println "──────────────────────────────────────────────────────"
+    }
+}

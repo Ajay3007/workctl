@@ -1,6 +1,6 @@
 plugins {
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.14'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
 }
 
 java {
@@ -10,11 +10,7 @@ java {
 
 javafx {
     version = "21"
-    modules = [
-            'javafx.controls',
-            'javafx.fxml',
-            'javafx.web'
-    ]
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.web']
 }
 
 dependencies {
@@ -26,28 +22,142 @@ dependencies {
 }
 
 application {
-    mainClass = 'com.workctl.gui.WorkctlApp'
+    mainClass       = 'com.workctl.gui.WorkctlApp'
     applicationName = 'workctl-gui'
 }
 
-def guiReleaseDir = file("$rootDir/build/release/workctl-gui")
-
-tasks.register("cleanGuiImage", Delete) {
-    delete guiReleaseDir
+jar {
+    manifest {
+        attributes(
+                'Main-Class':             application.mainClass.get(),
+                'Implementation-Title':   'workctl GUI',
+                'Implementation-Version': version
+        )
+    }
 }
 
-tasks.register("packageApp", Exec) {
+// ── JavaFX paths (your exact installation) ───────────────────────
+ext {
+    javafxJmods = "C:/Softwares/javafx-sdk-21/javafx-jmods-21"   // .jmod files → jlink uses these
+    javafxBin   = "C:/Softwares/javafx-sdk-21/bin"               // .dll files  → copied into runtime
+}
 
-    dependsOn installDist
-    dependsOn cleanGuiImage
+// ── Delete previous package (Windows-safe using cmd rmdir) ───────
+tasks.register('cleanPackage', Exec) {
+    group     = 'workctl distribution'
+    onlyIf    { file("${rootDir}/build/release/workctl-gui").exists() }
+    commandLine 'cmd', '/c',
+            "rmdir /s /q \"${rootDir}\\build\\release\\workctl-gui\""
+    doLast { file("${rootDir}/build/release").mkdirs() }
+}
 
-    commandLine "jpackage",
-            "--type", "app-image",
-            "--name", "workctl-gui",
-            "--app-version", version,
-            "--input", "$buildDir/install/workctl-gui/lib",
-            "--main-jar", "gui-${version}.jar",
-            "--main-class", "com.workctl.gui.WorkctlApp",
-            "--dest", "$rootDir/build/release",
-            "--icon", "${projectDir}/src/main/resources/icon.ico"
+// ── Package as native .exe (no Java needed on target) ────────────
+//
+// How it works:
+//   1. installDist → gui/build/install/workctl-gui/lib/  (all JARs incl. JavaFX JARs)
+//   2. jpackage reads --module-path javafxJmods so jlink builds a JRE with JavaFX modules
+//   3. doLast copies DLLs from javafxBin into the bundled runtime/bin/
+//   4. Result: workctl-gui/ folder with workctl-gui.exe — fully standalone
+//
+// Run:    ./gradlew :gui:packageNative
+// Output: build/release/workctl-gui/workctl-gui.exe
+
+tasks.register('packageNative', Exec) {
+    group       = 'workctl distribution'
+    description = 'Package GUI as native .exe — no Java or JavaFX needed on target machine'
+    dependsOn   installDist, cleanPackage
+
+    doFirst {
+        def outDir = file("${rootDir}/build/release")
+        outDir.mkdirs()
+
+        def libDir = file("${buildDir}/install/workctl-gui/lib").absolutePath
+
+        commandLine = [
+                'jpackage',
+                '--type',         'app-image',
+                '--name',         'workctl-gui',
+                '--app-version',  version,
+
+                // Input: all JARs from installDist (includes JavaFX JARs from Maven)
+                '--input',        libDir,
+                '--main-jar',     "gui-${version}.jar",
+                '--main-class',   application.mainClass.get(),
+
+                // Output
+                '--dest',         outDir.absolutePath,
+
+                // JavaFX jmods — jlink needs these to include JavaFX in the bundled JRE
+                '--module-path',  javafxJmods,
+                '--add-modules',  'javafx.controls,javafx.fxml,javafx.web',
+
+                // JVM flags for the bundled launcher
+                '--java-options', '--add-opens=java.base/java.lang=ALL-UNNAMED',
+                '--java-options', '--add-opens=java.base/java.io=ALL-UNNAMED',
+                '--java-options', '--add-exports=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED',
+        ]
+
+        def icon = file("src/main/resources/icon.ico")
+        if (icon.exists()) {
+            commandLine += ['--icon', icon.absolutePath]
+        }
+    }
+
+    // Copy native DLLs from JavaFX SDK bin/ into the bundled runtime/bin/
+    // jpackage includes the JavaFX module JARs but not always the native .dll files
+    doLast {
+        def runtimeBin = file("${rootDir}/build/release/workctl-gui/runtime/bin")
+        def srcBin     = file(javafxBin)
+
+        if (runtimeBin.exists()) {
+            println "  Copying JavaFX native DLLs into runtime/bin/ ..."
+            srcBin.listFiles().each { f ->
+                if (f.name.endsWith('.dll')) {
+                    def dest = new File(runtimeBin, f.name)
+                    if (!dest.exists()) {
+                        java.nio.file.Files.copy(
+                                f.toPath(), dest.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                        )
+                    }
+                }
+            }
+            println "  Done."
+        }
+
+        println ""
+        println "✓ GUI packaged → build/release/workctl-gui/workctl-gui.exe"
+        println "  Share the entire workctl-gui/ folder."
+        println "  No Java or JavaFX needed on the target machine."
+    }
+}
+
+// ── Zip for sharing ───────────────────────────────────────────────
+// Run:    ./gradlew :gui:packageZip
+// Output: gui/build/distributions/workctl-gui-x.x.x-windows.zip
+
+tasks.register('packageZip', Zip) {
+    group               = 'workctl distribution'
+    description         = 'Zip the native GUI package for easy sharing'
+    dependsOn           packageNative
+
+    archiveFileName             = "workctl-gui-${version}-windows.zip"
+    destinationDirectory        = layout.buildDirectory.dir('distributions')
+
+    from("${rootDir}/build/release/workctl-gui")
+    into("workctl-gui-${version}")
+
+    doLast {
+        println "✓ ZIP → gui/build/distributions/workctl-gui-${version}-windows.zip"
+        println "  Extract and run workctl-gui-${version}/workctl-gui.exe"
+        println "  No Java or JavaFX needed."
+    }
+}
+
+tasks.named('run') {
+    doFirst {
+        println "──────────────────────────────────────────"
+        println "  Launching workctl GUI (development mode)"
+        println "──────────────────────────────────────────"
+    }
 }
