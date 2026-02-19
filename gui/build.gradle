@@ -20,6 +20,7 @@ javafx {
 dependencies {
     implementation project(':core')
     implementation project(':config')
+    implementation project(':agent')
     implementation 'org.commonmark:commonmark:0.21.0'
     implementation 'org.commonmark:commonmark-ext-gfm-tables:0.21.0'
 }
@@ -30,7 +31,6 @@ application {
 }
 
 def guiReleaseDir = file("$rootDir/build/release/workctl-gui")
-def javafxLibPath = "C:/Softwares/javafx-sdk-21/lib"
 
 tasks.register("cleanGuiImage", Delete) {
     delete guiReleaseDir
@@ -49,8 +49,5 @@ tasks.register("packageApp", Exec) {
             "--main-jar", "gui-${version}.jar",
             "--main-class", "com.workctl.gui.WorkctlApp",
             "--dest", "$rootDir/build/release",
-            "--module-path", "$buildDir/install/workctl-gui/lib;${javafxLibPath}",
-            "--add-modules", "ALL-MODULE-PATH",
-            "--win-shortcut",
-            "--win-menu"
+            "--icon", "${projectDir}/src/main/resources/icon.ico"
 }

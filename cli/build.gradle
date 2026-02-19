@@ -10,6 +10,7 @@ java {
 dependencies {
     implementation project(':core')
     implementation project(':config')
+    implementation project(':agent')
     implementation 'info.picocli:picocli:4.7.5'
 }
 

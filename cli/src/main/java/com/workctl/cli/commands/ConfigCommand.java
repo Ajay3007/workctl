@@ -38,6 +38,7 @@ public class ConfigCommand {
                     case "editor" -> config.setEditor(value);
                     case "workspace" -> config.setWorkspace(value);
                     case "dateformat" -> config.setDateFormat(value);
+                    case "anthropicapikey" -> config.setAnthropicApiKey(value);
                     default -> {
                         System.out.println("Unknown config key: " + key);
                         return;
@@ -74,6 +75,7 @@ public class ConfigCommand {
                     case "editor" -> config.getEditor();
                     case "workspace" -> config.getWorkspace();
                     case "dateformat" -> config.getDateFormat();
+                    case "anthropicapikey" -> config.getAnthropicApiKey();
                     default -> {
                         System.out.println("Unknown config key: " + key);
                         yield null;
@@ -107,6 +109,9 @@ public class ConfigCommand {
                 System.out.println("editor     = " + config.getEditor());
                 System.out.println("workspace  = " + config.getWorkspace());
                 System.out.println("dateFormat = " + config.getDateFormat());
+                System.out.println("anthropicApiKey = " +
+                        (config.getAnthropicApiKey() != null && !config.getAnthropicApiKey().isBlank()
+                                ? "***configured***" : "NOT SET"));
 
             } catch (Exception e) {
                 System.out.println("Failed to load config");

@@ -235,9 +235,13 @@ public class TaskService {
                         ? Integer.parseInt(priorityGroup)
                         : 2;
 
-                descriptionBuilder = new StringBuilder(
-                        taskMatcher.group(4).trim()
-                );
+//                descriptionBuilder = new StringBuilder(
+//                        taskMatcher.group(4).trim()
+//                );
+
+                String titlePart = taskMatcher.group(4).trim()
+                        .replaceAll("\\s*<!--.*?-->\\s*$", "").trim();
+                descriptionBuilder = new StringBuilder(titlePart);
 
                 currentTaskStatus = currentStatus;
                 currentCreatedDate = LocalDate.now(); // default

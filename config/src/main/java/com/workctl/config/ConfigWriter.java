@@ -16,6 +16,7 @@ public class ConfigWriter {
         data.put("workspace", config.getWorkspace());
         data.put("dateFormat", config.getDateFormat());
         data.put("editor", config.getEditor());
+        data.put("anthropicApiKey", config.getAnthropicApiKey());
 
         Yaml yaml = new Yaml();
 

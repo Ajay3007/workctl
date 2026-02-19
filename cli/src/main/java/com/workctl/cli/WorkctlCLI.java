@@ -16,7 +16,8 @@ import picocli.CommandLine;
                 TaskCommand.class,
                 ConfigCommand.class,
                 StatsCommand.class,
-                InsightCommand.class
+                InsightCommand.class,
+                AskCommand.class
         }
 )
 public class WorkctlCLI implements Runnable {

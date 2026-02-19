@@ -615,7 +615,10 @@ public class TaskController {
                 ButtonType.CANCEL
         );
 
-        TextArea editor = new TextArea(task.getDescription());
+//        TextArea editor = new TextArea(task.getDescription());
+        String cleanDescription = task.getDescription()
+                .replaceAll("\\s*<!--.*?-->\\s*", "").trim();
+        TextArea editor = new TextArea(cleanDescription);
         editor.setWrapText(true);
         editor.setPrefSize(600, 400);
 

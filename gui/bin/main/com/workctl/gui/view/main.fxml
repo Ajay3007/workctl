@@ -21,7 +21,7 @@
     </left>
 
     <center>
-        <TabPane>
+        <TabPane  fx:id="mainTabPane">
             <Tab text="Tasks">
                 <fx:include source="tasks.fxml" fx:id="tasksView"/>
             </Tab>
