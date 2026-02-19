@@ -359,7 +359,15 @@ TaskService (core module)
 
 ![Add New Task](assets/images/add-new-task.png)
 
+### AI Agent
 
+![AI AGENT Response](assets/images/ai-response-page.png)
+
+#### You can also refer [Sample AI Agent Response](docs/ai-weekly-resp.md).
+
+![Custom Query](assets/images/custom-qry-ai.png)
+
+![Custome Response](assets/images/custom-resp-ai.png)
 
 ## Design Philosophy
 
