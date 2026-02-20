@@ -48,10 +48,20 @@ Agent ─────────┘
 
 ---
 
+## Getting Started
+
+New to workctl? See the full setup guide: **[docs/SETUP.md](docs/SETUP.md)**
+
+It covers prerequisites, PATH setup, first-time init, tab completion, and the `workctl-build` developer shortcut for all platforms.
+
 ## Building
 
 ```bash
+# macOS / Linux
 ./gradlew clean build
+
+# Windows
+gradlew.bat clean build
 ```
 
 ## Running
@@ -59,15 +69,21 @@ Agent ─────────┘
 ### CLI
 
 ```bash
+# macOS / Linux
 ./gradlew :cli:installDist
-./gradlew clean :cli:installDist
+
+# Windows
+gradlew.bat :cli:installDist
 ```
 
 ### GUI
 
 ```bash
-./gradlew gui:run
-./gradlew clean :gui:run
+# macOS / Linux
+./gradlew :gui:run
+
+# Windows
+gradlew.bat :gui:run
 ```
 
 ---

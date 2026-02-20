@@ -63,8 +63,61 @@ tasks.register('generateCompletion', Exec) {
         commandLine 'cmd', '/c', 'echo Skipping completion generation on Windows (bash/zsh not available). To use completions in Git Bash or WSL run: workctl generate-completion bash > ~/.workctl/workctl_completion'
     } else {
         completionFile.parentFile.mkdirs()
-        commandLine 'sh', '-c',
-            "\"${workctlBin.absolutePath}\" generate-completion bash > \"${completionFile.absolutePath}\""
+        // Generate base completion then append dynamic project-name patch
+        commandLine 'sh', '-c', """
+            \"${workctlBin.absolutePath}\" generate-completion bash > \"${completionFile.absolutePath}\"
+            cat >> \"${completionFile.absolutePath}\" << 'PATCH'
+
+# ── Dynamic project name completion ─────────────────────────────────────────
+# Appended by Gradle generateCompletion. Reads live project names from the
+# workspace at tab-press time so completions always reflect reality.
+_workctl_project_names() {
+    workctl project list 2>/dev/null \\
+        | grep '^ *-' \\
+        | sed 's/^ *- *//'
+}
+
+# Wrapper around the picocli-generated _complete_workctl.
+# Intercepts only the <project> positional argument for each command;
+# everything else (flags, subcommand names, option values) is handled
+# by the original picocli function unchanged.
+_complete_workctl_dynamic() {
+    local cmd="\${COMP_WORDS[1]}"
+    local cword=\$COMP_CWORD
+    local cur="\${COMP_WORDS[COMP_CWORD]}"
+
+    case "\$cmd" in
+        insight|stats|weekly|log|ask)
+            # workctl <cmd> <project>  →  project is at position 2
+            if [[ \$cword -eq 2 && "\$cur" != -* ]]; then
+                COMPREPLY=(\$(compgen -W "\$(_workctl_project_names)" -- "\$cur"))
+                return
+            fi
+            ;;
+        task)
+            # workctl task <subcmd> <project>  →  project is at position 3
+            if [[ \$cword -eq 3 && "\$cur" != -* ]]; then
+                COMPREPLY=(\$(compgen -W "\$(_workctl_project_names)" -- "\$cur"))
+                return
+            fi
+            ;;
+        project)
+            # workctl project delete <project>  →  project is at position 3
+            if [[ \$cword -eq 3 && "\${COMP_WORDS[2]}" == "delete" && "\$cur" != -* ]]; then
+                COMPREPLY=(\$(compgen -W "\$(_workctl_project_names)" -- "\$cur"))
+                return
+            fi
+            ;;
+    esac
+
+    # Fall back to picocli-generated completion for everything else
+    _complete_workctl
+}
+
+# Replace the picocli binding with our dynamic wrapper
+complete -F _complete_workctl_dynamic workctl
+PATCH
+        """
     }
 
     doLast {
