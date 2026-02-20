@@ -21,14 +21,15 @@ import java.util.List;
         description = "Manage projects",
         subcommands = {
                 ProjectCommand.CreateCommand.class,
-                ProjectCommand.ListCommand.class
+                ProjectCommand.ListCommand.class,
+                ProjectCommand.DeleteCommand.class
         }
 )
 public class ProjectCommand implements Runnable {
 
     @Override
     public void run() {
-        ConsolePrinter.info("Use: workctl project <create|list>");
+        ConsolePrinter.info("Use: workctl project <create|list|delete>");
     }
 
 
@@ -68,6 +69,41 @@ public class ProjectCommand implements Runnable {
         }
     }
 
+
+
+
+    @Command(name = "delete", description = "Delete a project and all its data")
+    public static class DeleteCommand implements Runnable {
+
+        @Parameters(index = "0", description = "Project name")
+        private String projectName;
+
+        private final ProjectService projectService = new ProjectService();
+
+        @Override
+        public void run() {
+            try {
+                AppConfig config = ConfigManager.load();
+                Path workspace = Path.of(config.getWorkspace());
+
+                System.out.print("Type the project name to confirm deletion [" + projectName + "]: ");
+                String confirmation = new java.util.Scanner(System.in).nextLine().trim();
+
+                if (!confirmation.equals(projectName)) {
+                    ConsolePrinter.warning("Deletion cancelled — name did not match.");
+                    return;
+                }
+
+                projectService.deleteProject(workspace, projectName);
+                ConsolePrinter.success("Project deleted: " + projectName);
+
+            } catch (IllegalArgumentException e) {
+                ConsolePrinter.error(e.getMessage());
+            } catch (Exception e) {
+                ConsolePrinter.error("Failed to delete project: " + e.getMessage());
+            }
+        }
+    }
 
 
 

@@ -12,6 +12,11 @@ dependencies {
     implementation project(':config')
     implementation project(':agent')
     implementation 'info.picocli:picocli:4.7.5'
+    annotationProcessor 'info.picocli:picocli-codegen:4.7.5'
+}
+
+compileJava {
+    options.compilerArgs += ['-Aproject=com.workctl/workctl']
 }
 
 application {
@@ -35,13 +40,39 @@ distributions {
     }
 }
 
-// ── OS detection ──────────────────────────────────────────────────
-
+// ── OS detection (must be before any task that references isWindows) ──
 ext {
-    isWindows    = org.gradle.internal.os.OperatingSystem.current().isWindows()
-    isMacOS      = org.gradle.internal.os.OperatingSystem.current().isMacOsX()
+    isWindows      = org.gradle.internal.os.OperatingSystem.current().isWindows()
+    isMacOS        = org.gradle.internal.os.OperatingSystem.current().isMacOsX()
     platformSuffix = isWindows ? "windows" : isMacOS ? "macos" : "linux"
 }
+
+// ── Auto-regenerate shell completion after every installDist ──────
+// Keeps ~/.workctl/workctl_completion in sync whenever new commands are added.
+// Bash/zsh only — skipped on Windows (PowerShell completion not yet supported).
+tasks.register('generateCompletion', Exec) {
+    group       = 'workctl distribution'
+    description = 'Regenerate ~/.workctl/workctl_completion after installDist (macOS/Linux only)'
+    dependsOn   installDist
+
+    def completionFile = file("${System.getProperty('user.home')}/.workctl/workctl_completion")
+    def workctlBin     = file("${buildDir}/install/workctl/bin/workctl")
+
+    if (isWindows) {
+        // No-op on Windows — bash/zsh completion not applicable
+        commandLine 'cmd', '/c', 'echo Skipping completion generation on Windows (bash/zsh not available). To use completions in Git Bash or WSL run: workctl generate-completion bash > ~/.workctl/workctl_completion'
+    } else {
+        completionFile.parentFile.mkdirs()
+        commandLine 'sh', '-c',
+            "\"${workctlBin.absolutePath}\" generate-completion bash > \"${completionFile.absolutePath}\""
+    }
+
+    doLast {
+        if (!isWindows) println "✓ Completion script updated → ${completionFile}"
+    }
+}
+
+installDist.finalizedBy generateCompletion
 
 // ── Delete previous package (cross-platform) ─────────────────────
 

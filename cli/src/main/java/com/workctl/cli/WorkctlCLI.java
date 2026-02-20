@@ -1,6 +1,7 @@
 package com.workctl.cli;
 
 import com.workctl.cli.commands.*;
+import picocli.AutoComplete;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -17,7 +18,8 @@ import picocli.CommandLine;
                 ConfigCommand.class,
                 StatsCommand.class,
                 InsightCommand.class,
-                AskCommand.class
+                AskCommand.class,
+                AutoComplete.GenerateCompletion.class
         }
 )
 public class WorkctlCLI implements Runnable {

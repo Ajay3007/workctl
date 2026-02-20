@@ -51,6 +51,7 @@ public class LogController {
         // 1. Refresh when user switches project
         ProjectContext.addListener(project -> {
             currentProject = project;
+            if (project == null) return;
             startWatchingProject(project);
             loadLog(project);
         });

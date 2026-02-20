@@ -81,6 +81,24 @@ public class ProjectService {
         }
     }
 
+    public void deleteProject(Path workspace, String name) {
+        Path projectDir = workspace.resolve("01_Projects").resolve(name);
+
+        if (!Files.exists(projectDir)) {
+            throw new IllegalArgumentException("Project not found: " + name);
+        }
+
+        try (Stream<Path> walk = Files.walk(projectDir)) {
+            walk.sorted(Comparator.reverseOrder())
+                .forEach(p -> {
+                    try { Files.delete(p); }
+                    catch (IOException e) { throw new RuntimeException("Failed to delete: " + p, e); }
+                });
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete project: " + name, e);
+        }
+    }
+
     public List<Project> listProjects(Path workspace) {
         try {
             Path projectsDir = workspace.resolve("01_Projects");

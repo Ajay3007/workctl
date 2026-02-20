@@ -57,6 +57,12 @@ public class TaskController {
 
         ProjectContext.addListener(this::setProject);
 
+        ProjectContext.addFileChangeListener(() -> {
+            if (currentProject != null) {
+                Platform.runLater(this::refreshBoard);
+            }
+        });
+
         // IMPORTANT: Attach drop handlers to SCROLLPANES
         setupDropTarget(openScroll, TaskStatus.OPEN);
         setupDropTarget(inProgressScroll, TaskStatus.IN_PROGRESS);
@@ -271,7 +277,12 @@ public class TaskController {
     // ====================================================
     private void refreshBoard() {
 
-        if (currentProject == null) return;
+        if (currentProject == null) {
+            openColumn.getChildren().clear();
+            inProgressColumn.getChildren().clear();
+            doneColumn.getChildren().clear();
+            return;
+        }
 
         List<Task> tasks = taskService.getTasks(currentProject);
 

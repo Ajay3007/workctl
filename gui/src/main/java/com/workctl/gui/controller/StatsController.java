@@ -61,6 +61,7 @@ public class StatsController {
         // 1. Refresh when user switches project
         ProjectContext.addListener(projectName -> {
             currentProject = projectName;
+            if (projectName == null) return;
             startWatchingProject(projectName);     // start/restart file watcher
             loadStatsAsync(projectName);
         });

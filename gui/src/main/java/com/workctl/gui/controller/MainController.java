@@ -25,6 +25,7 @@ public class MainController {
     @FXML private ListView<String> projectListView;
     @FXML private TabPane mainTabPane;
     @FXML private Label projectCountLabel;
+    @FXML private Button deleteProjectBtn;
 
     private final ProjectService projectService = new ProjectService();
     private AgentPanel agentPanel;
@@ -54,6 +55,11 @@ public class MainController {
                             agentPanel.setProject(newVal);
                         }
                     });
+
+            // ── Disable Delete button when nothing is selected ────
+            deleteProjectBtn.disableProperty().bind(
+                projectListView.getSelectionModel().selectedItemProperty().isNull()
+            );
 
             // ── Watch workspace for CLI-created projects ──────────
             startWorkspaceWatcher();
@@ -194,6 +200,58 @@ public class MainController {
         } catch (Exception e) {
             showError("Failed to create project", e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // DELETE PROJECT — GUI Dialog
+    // ════════════════════════════════════════════════════════════════
+
+    @FXML
+    public void handleDeleteProject() {
+        String selected = projectListView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showError("No project selected", "Please select a project to delete.");
+            return;
+        }
+
+        // Step 1: Warning confirmation
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Project");
+        confirm.setHeaderText("Delete \"" + selected + "\"?");
+        confirm.setContentText(
+            "This will permanently delete the project and ALL its data\n" +
+            "(tasks, logs, notes, docs).\n\nThis action cannot be undone."
+        );
+        confirm.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) return;
+
+        // Step 2: Type-to-confirm
+        TextInputDialog typeConfirm = new TextInputDialog();
+        typeConfirm.setTitle("Confirm Deletion");
+        typeConfirm.setHeaderText("Type the project name to confirm:");
+        typeConfirm.setContentText("Project name:");
+
+        Optional<String> typed = typeConfirm.showAndWait();
+        if (typed.isEmpty() || !typed.get().trim().equals(selected)) {
+            showError("Deletion cancelled", "Project name did not match. Nothing was deleted.");
+            return;
+        }
+
+        try {
+            AppConfig config = ConfigManager.load();
+            Path workspace = Paths.get(config.getWorkspace());
+            projectService.deleteProject(workspace, selected);
+
+            loadProjects();
+
+            if (selected.equals(ProjectContext.getCurrentProject())) {
+                ProjectContext.setCurrentProject(null);
+            }
+        } catch (Exception e) {
+            showError("Failed to delete project", e.getMessage());
         }
     }
 
