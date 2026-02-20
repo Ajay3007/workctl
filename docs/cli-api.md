@@ -11,6 +11,7 @@ Complete reference for all CLI commands implemented in workctl.
 | `workctl init` | Initialize workspace and config |
 | `workctl project create` | Create a new project |
 | `workctl project list` | List all projects |
+| `workctl project delete` | Delete a project and all its data |
 | `workctl log` | Add a work log entry |
 | `workctl task add` | Add a new task |
 | `workctl task list` | List all tasks by status |
@@ -26,6 +27,10 @@ Complete reference for all CLI commands implemented in workctl.
 | `workctl search` | Search logs by keyword or tag |
 | `workctl stats` | Analytics from task lifecycle events |
 | `workctl insight` | Intelligent project health insights |
+| `workctl ask` | Ask the AI agent a question (read-only) |
+| `workctl ask --act` | Ask the AI agent with write mode enabled |
+| `workctl ask --weekly` | AI-powered weekly summary |
+| `workctl ask --insight` | AI-powered project health insights |
 | `workctl config set` | Set a config value |
 | `workctl config get` | Get a config value |
 | `workctl config show` | Show all config |
@@ -160,6 +165,39 @@ workctl project list
   - auth-service
   - workctl
 ```
+
+---
+
+## `workctl project delete`
+
+Permanently deletes a project directory and **all its data** (tasks, logs, notes, docs). Requires the user to retype the project name to confirm — there is no undo.
+
+### Usage
+
+```bash
+workctl project delete <project-name>
+```
+
+### Confirmation Prompt
+
+```
+Type the project name to confirm deletion [redis-load-test]: redis-load-test
+✓ Project deleted: redis-load-test
+```
+
+If the typed name does not match exactly:
+```
+⚠ Deletion cancelled — name did not match.
+```
+
+### Examples
+
+```bash
+workctl project delete redis-load-test
+workctl project delete auth-service
+```
+
+> **Warning:** This deletes the entire `<workspace>/01_Projects/<project-name>/` directory recursively. All tasks, logs, and notes are lost permanently.
 
 ---
 
@@ -776,6 +814,101 @@ Active Days (Heatmap entries): 8
 
 ---
 
+# 🤖 AI Agent
+
+## `workctl ask`
+
+Sends a question or instruction to the Claude AI agent. The agent reads your project's `tasks.md` and `work-log.md`, reasons over them, and responds in natural language.
+
+Requires `anthropicApiKey` to be set in `~/.workctl/config.yaml`.
+
+**By default the agent is read-only** — it can answer questions but cannot modify any files. Pass `--act` to enable write mode.
+
+---
+
+### Mode 1 — Ask a question
+
+```bash
+workctl ask <project> "<question>"
+```
+
+```bash
+workctl ask redis-load-test "What did I work on this week?"
+workctl ask redis-load-test "Which P1 tasks are stagnant?"
+workctl ask redis-load-test "Summarize the open tasks"
+```
+
+---
+
+### Mode 2 — Give an instruction (write mode)
+
+```bash
+workctl ask <project> --act "<instruction>"
+```
+
+With `--act`, the agent can create tasks and move task status. Without it, the same instruction is answered but no files are changed.
+
+```bash
+workctl ask redis-load-test --act "Break down the logging feature into subtasks"
+workctl ask redis-load-test --act "Mark task 5 as done"
+workctl ask redis-load-test --act "Add a P1 task: Fix connection timeout on large payloads"
+```
+
+---
+
+### Mode 3 — AI weekly summary
+
+```bash
+workctl ask <project> --weekly
+workctl ask <project> --weekly --from <date> --to <date>
+```
+
+Generates a narrative weekly summary powered by the AI, richer than `workctl weekly`.
+
+```bash
+workctl ask redis-load-test --weekly
+workctl ask redis-load-test --weekly --from 2026-02-10 --to 2026-02-16
+```
+
+---
+
+### Mode 4 — AI project insights
+
+```bash
+workctl ask <project> --insight
+```
+
+Generates an intelligent project health report — a richer, interpreted version of `workctl insight`.
+
+```bash
+workctl ask redis-load-test --insight
+```
+
+---
+
+### All Options
+
+| Option | Description |
+|---|---|
+| `--act` | Enable write mode — agent can add tasks and change task status |
+| `--weekly` | Generate AI-powered weekly summary instead of answering a question |
+| `--insight` | Generate AI-powered project health insights |
+| `--from` | Start date for `--weekly` mode (`yyyy-MM-dd`) |
+| `--to` | End date for `--weekly` mode (`yyyy-MM-dd`) |
+
+---
+
+### Read-only vs Write mode
+
+| Mode | What the agent can do |
+|---|---|
+| Default (no `--act`) | Read tasks and logs, answer questions, generate summaries |
+| `--act` | Everything above + add tasks, move task status |
+
+---
+
+---
+
 # ⚙ Config Commands
 
 Configuration is stored at `~/.workctl/config.yaml`. The following keys are supported:
@@ -928,4 +1061,7 @@ Because storage is plain Markdown, all project data is fully **Git-versionable**
 
 ---
 
-End of CLI API Reference.
+---
+
+*Last updated: 2026-02-21*
+*Keep this file in sync with any CLI command additions or changes.*

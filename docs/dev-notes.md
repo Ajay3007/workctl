@@ -142,4 +142,12 @@ The binary extension also differs: `workctl` on macOS/Linux, `workctl.bat` on Wi
 
 ---
 
+## Documentation
+
+### `docs/cli-api.md` must be updated with every CLI change
+Any time a command is added, renamed, or gets new options, update `docs/cli-api.md`:
+- Add the command to the Quick Reference table at the top
+- Add a full section with Usage, Options, and Examples
+- Update the *Last updated* date at the bottom
+
 *Last updated: 2026-02-21*
