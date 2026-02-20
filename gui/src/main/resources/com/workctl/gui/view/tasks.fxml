@@ -13,7 +13,7 @@
     </padding>
 
     <!-- ========================= -->
-    <!-- Add Task Toolbar -->
+    <!-- Toolbar: Add Task + Search -->
     <!-- ========================= -->
     <HBox spacing="15" alignment="CENTER_LEFT">
 
@@ -26,11 +26,35 @@
         <Label text="Create a detailed task with Markdown support and priority."
                style="-fx-text-fill: #666666;" />
 
+        <!-- Spacer pushes search to the right -->
+        <Region HBox.hgrow="ALWAYS" />
+
+        <!-- Search bar -->
+        <Label text="🔍"
+               style="-fx-font-size: 14;" />
+
+        <TextField fx:id="searchField"
+                   promptText="Search tasks by keyword or tag..."
+                   prefWidth="260"
+                   style="-fx-background-radius: 16;
+                          -fx-border-radius: 16;
+                          -fx-border-color: #ced4da;
+                          -fx-padding: 5 12;" />
+
+        <Button fx:id="clearSearchBtn"
+                text="✕"
+                onAction="#handleClearSearch"
+                style="-fx-background-color: transparent;
+                       -fx-text-fill: #999;
+                       -fx-font-size: 12;
+                       -fx-cursor: hand;
+                       -fx-padding: 4 8;" />
+
     </HBox>
 
 
     <!-- ========================= -->
-    <!-- Kanban Board -->
+    <!-- Kanban Board              -->
     <!-- ========================= -->
     <HBox spacing="20">
 

@@ -56,4 +56,7 @@
               hgap="4"
               vgap="4"/>
 
+    <Label fx:id="lastRefreshLabel"
+           style="-fx-text-fill: #999999; -fx-font-size: 10;"/>
+
 </VBox>

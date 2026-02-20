@@ -4,6 +4,7 @@ import com.workctl.config.AppConfig;
 import com.workctl.config.ConfigManager;
 import com.workctl.core.model.ProjectInsights;
 import com.workctl.core.model.Task;
+import com.workctl.core.model.Task.SubTask;
 import com.workctl.core.model.TaskStatus;
 
 import java.io.IOException;
@@ -183,6 +184,8 @@ public class TaskService {
         TaskStatus currentTaskStatus = null;
         int currentPriority = 2;
         LocalDate currentCreatedDate = LocalDate.now();
+        // NEW: accumulate subtasks per task
+        List<SubTask> currentSubtasks = new ArrayList<>();
 
         for (String line : lines) {
 
@@ -199,6 +202,14 @@ public class TaskService {
             // SECTION HEADER
             // ======================
             if (line.startsWith("## ")) {
+                // Save current task before switching sections
+                if (currentId != null) {
+                    tasks.add(buildTask(currentId, descriptionBuilder,
+                            currentTaskStatus, currentPriority,
+                            currentCreatedDate, currentSubtasks));
+                    currentId = null;
+                    currentSubtasks = new ArrayList<>();
+                }
                 String section = line.substring(3).trim();
                 currentStatus = switch (section) {
                     case "Open" -> TaskStatus.OPEN;
@@ -218,14 +229,10 @@ public class TaskService {
 
                 // Save previous task
                 if (currentId != null) {
-                    tasks.add(new Task(
-                            currentId,
-                            descriptionBuilder.toString().trim(),
-                            currentTaskStatus,
-                            new ArrayList<>(),
-                            currentPriority,
-                            currentCreatedDate
-                    ));
+                    tasks.add(buildTask(currentId, descriptionBuilder,
+                            currentTaskStatus, currentPriority,
+                            currentCreatedDate, currentSubtasks));
+                    currentSubtasks = new ArrayList<>();
                 }
 
                 currentId = Integer.parseInt(taskMatcher.group(1));
@@ -235,10 +242,7 @@ public class TaskService {
                         ? Integer.parseInt(priorityGroup)
                         : 2;
 
-//                descriptionBuilder = new StringBuilder(
-//                        taskMatcher.group(4).trim()
-//                );
-
+                // Strip inline metadata from title — preserved from current code
                 String titlePart = taskMatcher.group(4).trim()
                         .replaceAll("\\s*<!--.*?-->\\s*$", "").trim();
                 descriptionBuilder = new StringBuilder(titlePart);
@@ -249,10 +253,19 @@ public class TaskService {
                 continue;
             }
 
+            if (currentId == null) continue;
+
             // ======================
-            // MULTILINE + META
+            // 4-SPACE INDENTED LINES
             // ======================
-            if (currentId != null && line.startsWith("    ")) {
+            if (line.startsWith("    ")) {
+
+                // NEW: Check for subtask line first (    - [ ] or    - [x])
+                SubTask st = SubTask.fromLine(line);
+                if (st != null) {
+                    currentSubtasks.add(st);
+                    continue;
+                }
 
                 String trimmed = line.trim();
 
@@ -279,17 +292,27 @@ public class TaskService {
         // Add last task
         // ======================
         if (currentId != null) {
-            tasks.add(new Task(
-                    currentId,
-                    descriptionBuilder.toString().trim(),
-                    currentTaskStatus,
-                    new ArrayList<>(),
-                    currentPriority,
-                    currentCreatedDate
-            ));
+            tasks.add(buildTask(currentId, descriptionBuilder,
+                    currentTaskStatus, currentPriority,
+                    currentCreatedDate, currentSubtasks));
         }
 
         return new TasksData(tasks, nextId);
+    }
+
+    /** Helper to construct a Task and attach its subtask list */
+    private Task buildTask(int id, StringBuilder desc, TaskStatus status,
+                           int priority, LocalDate created, List<SubTask> subtasks) {
+        Task t = new Task(
+                id,
+                desc != null ? desc.toString().trim() : "",
+                status,
+                new ArrayList<>(),
+                priority,
+                created
+        );
+        t.setSubtasks(new ArrayList<>(subtasks));
+        return t;
     }
 
 
@@ -347,6 +370,11 @@ public class TaskService {
         // ===== Remaining lines (indented description only) =====
         for (int i = 1; i < lines.length; i++) {
             sb.append("\n    ").append(lines[i]);
+        }
+
+        // ===== Subtask lines (NEW) =====
+        for (SubTask st : task.getSubtasks()) {
+            sb.append("\n").append(st.toMarkdownLine());
         }
 
         return sb.toString();
@@ -552,8 +580,8 @@ public class TaskService {
     }
 
     public void updateStatus(String projectName,
-                            int taskId,
-                            TaskStatus newStatus) {
+                             int taskId,
+                             TaskStatus newStatus) {
 
         modifyTasks(projectName, data -> {
 
@@ -625,5 +653,51 @@ public class TaskService {
         });
     }
 
+    // ========================
+    // NEW — SUBTASK METHODS
+    // ========================
+
+    /**
+     * Append a new open subtask to an existing task.
+     */
+    public void addSubtask(String projectName, int taskId, String title) {
+        modifyTasks(projectName, data ->
+                data.tasks.stream()
+                        .filter(t -> t.getId() == taskId)
+                        .findFirst()
+                        .ifPresent(t -> t.getSubtasks().add(new SubTask(title, false)))
+        );
+    }
+
+    /**
+     * Toggle done/not-done for a subtask by 0-based index.
+     */
+    public void toggleSubtask(String projectName, int taskId, int subtaskIndex) {
+        modifyTasks(projectName, data ->
+                data.tasks.stream()
+                        .filter(t -> t.getId() == taskId)
+                        .findFirst()
+                        .ifPresent(t -> {
+                            List<SubTask> subs = t.getSubtasks();
+                            if (subtaskIndex >= 0 && subtaskIndex < subs.size()) {
+                                SubTask s = subs.get(subtaskIndex);
+                                s.setDone(!s.isDone());
+                            }
+                        })
+        );
+    }
+
+    /**
+     * Replace the entire subtask list for a task.
+     * Called when the Add/Edit dialog is saved.
+     */
+    public void setSubtasks(String projectName, int taskId, List<SubTask> subtasks) {
+        modifyTasks(projectName, data ->
+                data.tasks.stream()
+                        .filter(t -> t.getId() == taskId)
+                        .findFirst()
+                        .ifPresent(t -> t.setSubtasks(new ArrayList<>(subtasks)))
+        );
+    }
 
 }

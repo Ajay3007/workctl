@@ -9,12 +9,62 @@ import java.util.regex.Pattern;
 
 public class Task {
 
+    // ===============================
+    // SubTask inner class (NEW)
+    //
+    // Stored in tasks.md as 4-space-indented checkbox lines:
+    //   1. [ ] (P2) Task title  <!-- created=... -->
+    //       - [ ] Subtask one
+    //       - [x] Done subtask
+    // ===============================
+    public static class SubTask {
+
+        private String title;
+        private boolean done;
+
+        public SubTask(String title, boolean done) {
+            this.title = title;
+            this.done  = done;
+        }
+
+        public String  getTitle()          { return title; }
+        public boolean isDone()            { return done; }
+        public void    setTitle(String t)  { this.title = t; }
+        public void    setDone(boolean d)  { this.done  = d; }
+
+        /** Serialize to a 4-space-indented markdown checkbox line */
+        public String toMarkdownLine() {
+            return "    - " + (done ? "[x]" : "[ ]") + " " + title;
+        }
+
+        /**
+         * Parse a raw file line of the form "    - [ ] title" or "    - [x] title".
+         * Returns null if the line is not a subtask line.
+         */
+        public static SubTask fromLine(String rawLine) {
+            Pattern p = Pattern.compile("^    - \\[([ x])\\] (.+)$");
+            Matcher m = p.matcher(rawLine);
+            if (!m.matches()) return null;
+            return new SubTask(m.group(2).trim(), m.group(1).equals("x"));
+        }
+    }
+
+    // ===============================
+    // Original fields — UNCHANGED
+    // ===============================
     private int id;
     private String description;
     private TaskStatus status;
     private List<String> tags;
     private int priority; // 1 = High, 2 = Medium, 3 = Low
     private LocalDate createdDate;
+
+    // NEW field
+    private List<SubTask> subtasks = new ArrayList<>();
+
+    // ===============================
+    // Original constructors — UNCHANGED
+    // ===============================
 
     public Task(int id,
                 String description,
@@ -29,6 +79,7 @@ public class Task {
         this.tags = tags;
         this.priority = priority;
         this.createdDate = createdDate;
+        this.subtasks = new ArrayList<>();
     }
 
     public Task(int id,
@@ -61,7 +112,7 @@ public class Task {
 
 
     // ===============================
-    // Getters
+    // Getters — ORIGINAL UNCHANGED
     // ===============================
 
     public int getId() {
@@ -88,8 +139,27 @@ public class Task {
         return createdDate;
     }
 
+    // NEW getters
+    public List<SubTask> getSubtasks() {
+        if (subtasks == null) subtasks = new ArrayList<>();
+        return subtasks;
+    }
+
+    public boolean hasSubtasks() {
+        return subtasks != null && !subtasks.isEmpty();
+    }
+
+    public int getDoneSubtaskCount() {
+        if (subtasks == null) return 0;
+        return (int) subtasks.stream().filter(SubTask::isDone).count();
+    }
+
+    public int getTotalSubtaskCount() {
+        return subtasks == null ? 0 : subtasks.size();
+    }
+
     // ===============================
-    // Setters
+    // Setters — ORIGINAL UNCHANGED
     // ===============================
 
     public void setStatus(TaskStatus status) {
@@ -104,8 +174,13 @@ public class Task {
         this.priority = priority;
     }
 
+    // NEW setter
+    public void setSubtasks(List<SubTask> subtasks) {
+        this.subtasks = subtasks != null ? subtasks : new ArrayList<>();
+    }
+
     // ===============================
-    // Derived Methods
+    // Derived Methods — ORIGINAL UNCHANGED
     // ===============================
 
     public String getTitle() {
@@ -124,7 +199,7 @@ public class Task {
 
 
     // ===============================
-    // Markdown Serialization
+    // Markdown Serialization — ORIGINAL UNCHANGED
     // ===============================
 
     public String toMarkdown() {
@@ -204,7 +279,7 @@ public class Task {
     }
 
     // ===============================
-    // Equality (optional but useful)
+    // Equality — ORIGINAL UNCHANGED
     // ===============================
 
     @Override

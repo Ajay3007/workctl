@@ -8,20 +8,44 @@
             fx:controller="com.workctl.gui.controller.MainController">
 
     <left>
-        <VBox spacing="10" prefWidth="250">
+        <VBox spacing="8" prefWidth="220">
             <padding>
-                <Insets top="10" right="10" bottom="10" left="10"/>
+                <Insets top="12" right="10" bottom="10" left="10"/>
             </padding>
 
-            <Label text="Projects"
-                   style="-fx-font-size: 16; -fx-font-weight: bold;" />
+            <!-- Header: label + count -->
+            <HBox alignment="CENTER_LEFT" spacing="6">
+                <Label text="Projects"
+                       style="-fx-font-size: 15; -fx-font-weight: bold;"/>
+                <Label fx:id="projectCountLabel"
+                       text=""
+                       style="-fx-text-fill: #888888; -fx-font-size: 11;"/>
+            </HBox>
 
-            <ListView fx:id="projectListView"/>
+            <!-- Create Project button -->
+            <Button text="＋ New Project"
+                    onAction="#handleCreateProject"
+                    maxWidth="Infinity"
+                    style="
+                        -fx-background-color: #2ecc71;
+                        -fx-text-fill: white;
+                        -fx-font-weight: bold;
+                        -fx-font-size: 12;
+                        -fx-background-radius: 6;
+                        -fx-padding: 7 12 7 12;
+                        -fx-cursor: hand;
+                    "/>
+
+            <!-- Project list -->
+            <ListView fx:id="projectListView"
+                      VBox.vgrow="ALWAYS"/>
+
         </VBox>
     </left>
 
     <center>
-        <TabPane  fx:id="mainTabPane">
+        <!-- AI Agent tab is added programmatically in MainController.initialize() -->
+        <TabPane fx:id="mainTabPane">
             <Tab text="Tasks">
                 <fx:include source="tasks.fxml" fx:id="tasksView"/>
             </Tab>
@@ -33,7 +57,6 @@
             <Tab text="Stats">
                 <fx:include source="stats.fxml" fx:id="statsView"/>
             </Tab>
-
         </TabPane>
     </center>
 

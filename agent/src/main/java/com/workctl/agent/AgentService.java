@@ -20,7 +20,7 @@ import java.util.List;
  *
  * Two modes:
  *   ask()  → read-only: answers questions, summarizes, gives insights
- *   act()  → read+write: can also add tasks and move task status
+ *   act()  → read+write: can also add tasks, add subtasks, move task status
  *
  * Usage from CLI:
  *   workctl ask myproject "What did I work on this week?"
@@ -39,7 +39,7 @@ public class AgentService {
      *
      * @param projectName   the workctl project to work with
      * @param userMessage   the user's question or instruction
-     * @param allowWrite    if true, agent can add tasks and move task status
+     * @param allowWrite    if true, agent can add tasks, add subtasks, and move task status
      * @return              Claude's response as a plain string
      */
     public String ask(String projectName, String userMessage, boolean allowWrite) {
@@ -51,7 +51,7 @@ public class AgentService {
 
             if (apiKey == null || apiKey.isBlank()) {
                 return "⚠ Anthropic API key not configured.\n" +
-                       "Run: workctl config set anthropicApiKey sk-ant-YOUR_KEY_HERE";
+                        "Run: workctl config set anthropicApiKey sk-ant-YOUR_KEY_HERE";
             }
 
             // 2. Build context-rich system prompt
@@ -115,12 +115,13 @@ public class AgentService {
 
                 Please:
                 1. Call list_tasks first to see what already exists (avoid duplicates)
-                2. Break the goal into 3-6 specific, actionable subtasks
-                3. For each subtask:
+                2. Break the goal into 3-6 specific, actionable tasks
+                3. For each task:
                    - Make it concrete and completable in 1-2 days
                    - Assign a realistic priority (P1 only if truly blocking)
                    - Call add_task to create it
-                4. After creating all tasks, summarize what you created
+                4. For tasks that have clear sub-steps, call add_subtask to add them
+                5. After creating all tasks, summarize what you created
 
                 Think step by step before creating tasks.
                 """.formatted(goal);
@@ -158,6 +159,11 @@ public class AgentService {
     /**
      * Build the list of tools available to Claude.
      * Read tools are always available. Write tools require allowWrite=true.
+     *
+     * Write tools:
+     *   - add_task      → create a new task
+     *   - add_subtask   → add a subtask to an existing task  (NEW)
+     *   - move_task     → change task status
      */
     private List<AgentTool> buildTools(boolean allowWrite) {
         List<AgentTool> tools = new ArrayList<>();
@@ -167,9 +173,10 @@ public class AgentService {
         tools.add(new SearchLogsTool());
         tools.add(new GetInsightsTool());
 
-        // Write tools — only when user explicitly opts in with --act
+        // Write tools — only when user explicitly opts in
         if (allowWrite) {
             tools.add(new AddTaskTool());
+            tools.add(new AddSubtaskTool());   // NEW — agent can now create subtasks
             tools.add(new MoveTaskTool());
         }
 
