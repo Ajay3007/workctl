@@ -56,8 +56,62 @@ public class TaskService {
             grouped.getOrDefault(status, List.of())
                     .stream()
                     .sorted(Comparator.comparingInt(Task::getId))
-                    .forEach(t -> System.out.println(formatTask(t)));
+                    .forEach(t -> System.out.println(formatTaskForCli(t)));
         }
+    }
+
+    /**
+     * Human-friendly console representation of a task.
+     *
+     * Example output:
+     *
+     *   #5 [P2] Search Bar in GUI  [1/3 subtasks]
+     *     ○ Keyword based search
+     *     ✓ Tag based search
+     *     ○ Date based search
+     *
+     * Contrast with formatTask() which produces raw Markdown for file I/O.
+     * This method is used only by listTasks() for terminal display.
+     */
+    public String formatTaskForCli(Task task) {
+
+        String checkbox = switch (task.getStatus()) {
+            case OPEN        -> "[ ]";
+            case IN_PROGRESS -> "[~]";
+            case DONE        -> "[x]";
+        };
+
+        String firstLine = task.getDescription().split("\\R")[0]
+                .replaceAll("<!--.*?-->", "").trim();
+
+        StringBuilder sb = new StringBuilder();
+
+        // ── Task header line ──────────────────────────────────────────────
+        sb.append("  #").append(task.getId())
+                .append(" ").append(checkbox)
+                .append(" [P").append(task.getPriority()).append("] ")
+                .append(firstLine);
+
+        // Subtask progress badge
+        if (task.hasSubtasks()) {
+            sb.append("  [")
+                    .append(task.getDoneSubtaskCount())
+                    .append("/")
+                    .append(task.getTotalSubtaskCount())
+                    .append(" subtasks]");
+        }
+
+        // ── Subtask lines ─────────────────────────────────────────────────
+        for (SubTask st : task.getSubtasks()) {
+            sb.append("\n       ")
+                    .append(st.isDone() ? "✓ " : "○ ")
+                    .append(st.getTitle());
+            if (st.isDone()) {
+                sb.append(" (done)");
+            }
+        }
+
+        return sb.toString();
     }
 
     public void startTask(String projectName, int id) {
@@ -698,6 +752,28 @@ public class TaskService {
                         .findFirst()
                         .ifPresent(t -> t.setSubtasks(new ArrayList<>(subtasks)))
         );
+    }
+
+    /**
+     * Delete a subtask by 0-based index.
+     *
+     * Returns true  — subtask removed successfully.
+     * Returns false — task not found, or index out of range (caller prints the error).
+     */
+    public boolean deleteSubtask(String projectName, int taskId, int subtaskIndex) {
+
+        // Validate bounds BEFORE opening a write lock, so we can return false cleanly
+        Optional<Task> taskOpt = getTask(projectName, taskId);
+        if (taskOpt.isEmpty()) return false;
+        if (subtaskIndex < 0 || subtaskIndex >= taskOpt.get().getSubtasks().size()) return false;
+
+        modifyTasks(projectName, data ->
+                data.tasks.stream()
+                        .filter(t -> t.getId() == taskId)
+                        .findFirst()
+                        .ifPresent(t -> t.getSubtasks().remove(subtaskIndex))
+        );
+        return true;
     }
 
 }
