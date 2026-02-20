@@ -194,7 +194,7 @@ workctl config set workspace <path>
 workctl config set anthropicApiKey <key>
 ```
 
-### [For more on CLI API guide Refer -> CLI APIs](docs/cli-api_updated.md)
+### [For more on CLI API guide Refer -> CLI APIs](docs/cli-api.md)
 
 ---
 
@@ -399,21 +399,21 @@ In the GUI's Agent tab, toggle **Write Mode** to control what the agent can do:
 
 ### GUI Usage
 
-![Task Panel](task-panel.png)
+![Task Panel](assets/images/task-panel.png)
 
-![Log Panel](log-panel.png)
+![Log Panel](assets/images/log-panel.png)
 
-![Stat Panel](stat-panel.png)
+![Stat Panel](assets/images/stat-panel.png)
 
-![AI Agent Panel](ai-agent-panel.png)
+![AI Agent Panel](assets/images/ai-agent-panel.png)
 
-![Task Right Click Context Menu](context-menu.png)
+![Task Right Click Context Menu](assets/images/context-menu.png)
 
-![Task View - (i) Button](task-view.png)
+![Task View - (i) Button](assets/images/task-view.png)
 
-![Add Task Window](create-task.png)
+![Add Task Window](assets/images/create-task.png)
 
-![Search Bar in Action](search-action.png)
+![Search Bar in Action](assets/images/search-action.png)
 
 ### CLI Usage
 
