@@ -61,44 +61,83 @@ public class ConsolePrinter {
     }
 
     /**
-     * Styled app banner — diamond logo + app info, modelled after Claude Code's layout.
+     * Clipboard-style startup banner, similar in structure to Claude Code's logo.
      *
+     * Layout (34 chars wide, inner = 30 chars):
      * <pre>
-     *    ◆
-     *    |
-     *   ▗▄▖   workctl  v0.1.0
-     *  ▟███▙  tasks · logs · AI
-     *  ▜███▛  ~/current/dir
-     *   ▝▀▘
+     *                ┌────┐
+     *                │░░░░│
+     *   ╔════════════╩════╩════════════╗
+     *   ║  □ ───────────────────────   ║   workctl  v0.1.0
+     *   ║  □ ─────────────────         ║   tasks · logs · AI
+     *   ║  □ ─────────────────────     ║   ~/current/dir
+     *   ║  □ ─────── ─── ──────────    ║
+     *   ║  ✓ ────────────────────── ⚙  ║
+     *   ╚══════════════════════════════╝
      * </pre>
      *
-     * The diamond is formed by quarter-block and three-quarter-block characters
-     * so it pinches naturally at the top and bottom, identical aesthetic to Claude's logo.
-     * All three text lines start at column 8 (flush with each other).
+     * The clip (┌────┐) sits above the ╩ notches so it looks pinned to the top
+     * of the clipboard, exactly like a real physical clipboard clip.
+     * The ⚙ gear sits inside the done row near the bottom-right corner.
+     * Text (name, tagline, cwd) is right-flush to the clipboard at col 36.
+     *
+     * Column accounting (0-indexed):
+     *   top border  : 2 + ╔ + 12═ + ╩ + 4═ + ╩ + 12═ + ╗  = 34
+     *   clip        : 15 spaces + ┌────┐ (┌ at col 15, ┐ at col 20)
+     *   content row : 2 + ║ + [30 inner chars] + ║         = 34
+     *   inner row   : 2 spaces + symbol + space + dashes + padding = 30
      */
     public static void banner() {
         String cwd = System.getProperty("user.dir")
                          .replace(System.getProperty("user.home"), "~");
 
+        // ── clip: lighter border floating above the clipboard top ────────
+        //    ┌ aligns with left ╩ (col 15), ┐ aligns with right ╩ (col 20)
         System.out.println();
-        // Decoration — centred over the diamond (col 3)
-        System.out.println("   " + BOLD + CYAN + "◆" + RESET);
-        System.out.println("   " + DIM  + "|" + RESET);
-        // Diamond top  (cols 2-4, 3 chars) — text starts at col 8  (3 logo + 3 gap + 2 pad)
+        System.out.println("               " + DIM + CYAN + "┌────┐" + RESET);
+        System.out.println("               " + DIM + CYAN + "│░░░░│" + RESET);
+
+        // ── clipboard top border — ╩ slots receive the clip's feet ──────
+        System.out.println("  " + BOLD + CYAN + "╔════════════╩════╩════════════╗" + RESET);
+
+        // ── checkbox rows — inner = exactly 30 visible chars each ────────
+        //    format:  "  " + symbol(1) + " " + dashes(N) + pad(26-N) = 30
+        //    row 1  : N=23, pad=3
+        clipRow("□", "───────────────────────", "   ");
+        //    row 2  : N=17, pad=9
+        clipRow("□", "─────────────────",       "         ");
+        //    row 3  : N=21, pad=5
+        clipRow("□", "─────────────────────",   "     ");
+        //    row 4  : N=22 (includes spaces), pad=4
+        clipRow("□", "─────── ─── ──────────",  "    ");
+
+        // ── done row: ✓ + gear ⚙ near right edge (inner = 30) ───────────
+        //    "  ✓ " (4) + 22 dashes (22) + " ⚙  " (4) = 30
         System.out.println(
-            "  " + BOLD + CYAN + "▗▄▖" + RESET
-            + "   " + BOLD + CYAN + "workctl" + RESET + "  " + DIM + "v0.1.0" + RESET);
-        // Diamond body (cols 1-5, 5 chars) — text starts at col 8  (1 + 5 + 2 gap)
-        System.out.println(
-            " " + BOLD + CYAN + "▟███▙" + RESET
-            + "  " + DIM + "tasks · logs · AI" + RESET);
-        System.out.println(
-            " " + BOLD + CYAN + "▜███▛" + RESET
-            + "  " + DIM + cwd + RESET);
-        // Diamond bottom (cols 2-4, 3 chars) — no text, mirrors the top
-        System.out.println(
-            "  " + BOLD + CYAN + "▝▀▘" + RESET);
+            "  " + BOLD + CYAN + "║" + RESET
+            + "  " + GREEN + BOLD + "✓" + RESET
+            + " " + DIM + "──────────────────────" + RESET
+            + " " + BOLD + CYAN + "⚙" + RESET
+            + "  " + BOLD + CYAN + "║" + RESET);
+
+        // ── bottom border ────────────────────────────────────────────────
+        System.out.println("  " + BOLD + CYAN + "╚══════════════════════════════╝" + RESET);
+
+        // ── labels below the art (aligned under right edge of clipboard) ─
+        System.out.println("          " + BOLD + CYAN  + "workctl" + RESET
+                         + "  "         + DIM          + "v0.1.0"  + RESET);
+        System.out.println("          " + DIM  + "tasks · logs · AI" + RESET);
+        System.out.println("          " + DIM  + cwd   + RESET);
         System.out.println();
+    }
+
+    /** Prints one clipboard content row: ║  symbol dashes pad ║ */
+    private static void clipRow(String symbol, String dashes, String pad) {
+        System.out.println(
+            "  " + BOLD + CYAN + "║" + RESET
+            + "  " + DIM + symbol + " " + dashes + RESET
+            + pad
+            + BOLD + CYAN + "║" + RESET);
     }
 
     // ── Badge helpers ─────────────────────────────────────────────
