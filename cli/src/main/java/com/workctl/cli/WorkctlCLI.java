@@ -1,6 +1,7 @@
 package com.workctl.cli;
 
 import com.workctl.cli.commands.*;
+import com.workctl.cli.util.ConsolePrinter;
 import picocli.AutoComplete;
 import picocli.CommandLine;
 
@@ -26,7 +27,8 @@ public class WorkctlCLI implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Use 'workctl --help' to see available commands.");
+        ConsolePrinter.banner();
+        ConsolePrinter.info("Use 'workctl --help' to see available commands.");
     }
 
     public static void main(String[] args) {

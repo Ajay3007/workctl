@@ -1,5 +1,6 @@
 package com.workctl.cli.commands;
 
+import com.workctl.cli.util.ConsolePrinter;
 import com.workctl.config.AppConfig;
 import com.workctl.config.ConfigWriter;
 import com.workctl.core.storage.WorkspaceManager;
@@ -26,12 +27,12 @@ public class InitCommand implements Runnable {
     @Override
     public void run() {
         try {
-            Path configDir = Paths.get(System.getProperty("user.home"), ".workctl");
+            Path configDir  = Paths.get(System.getProperty("user.home"), ".workctl");
             Path configFile = configDir.resolve("config.yaml");
 
             if (Files.exists(configFile)) {
-                System.out.println("⚠ workctl is already initialized.");
-                System.out.println("Config: " + configFile);
+                ConsolePrinter.warning("workctl is already initialized.");
+                ConsolePrinter.info("Config: " + configFile);
                 return;
             }
 
@@ -47,13 +48,12 @@ public class InitCommand implements Runnable {
 
             ConfigWriter.write(configFile, config);
 
-            System.out.println("✅ workctl initialized successfully!");
-            System.out.println("Workspace: " + workspace);
-            System.out.println("Config file: " + configFile);
+            ConsolePrinter.success("workctl initialized successfully!");
+            ConsolePrinter.info("Workspace:   " + workspace);
+            ConsolePrinter.info("Config file: " + configFile);
 
         } catch (Exception e) {
-            System.err.println("❌ Failed to initialize workctl");
-            e.printStackTrace();
+            ConsolePrinter.error("Failed to initialize workctl: " + e.getMessage());
         }
     }
 }

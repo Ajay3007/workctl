@@ -1,9 +1,11 @@
 package com.workctl.cli.commands;
 
+import com.workctl.cli.util.CliPrompt;
 import com.workctl.cli.util.ConsolePrinter;
 import com.workctl.cli.util.EditorUtil;
 import com.workctl.core.model.Task;
 import com.workctl.core.model.Task.SubTask;
+import com.workctl.core.model.TaskStatus;
 import com.workctl.core.service.TaskService;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -13,8 +15,10 @@ import picocli.CommandLine.Option;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Command(
         name = "task",
@@ -26,7 +30,7 @@ import java.util.Scanner;
                 TaskCommand.Done.class,
                 TaskCommand.Show.class,
                 TaskCommand.Delete.class,
-                TaskCommand.SubtaskGroup.class   // NEW
+                TaskCommand.SubtaskGroup.class
         }
 )
 public class TaskCommand {
@@ -64,8 +68,6 @@ public class TaskCommand {
         )
         private int priority;
 
-        // NEW: repeatable option — each --subtask value becomes one subtask
-        // Example: task add myproject -m "Build API" --subtask "Design schema" --subtask "Write tests"
         @Option(
                 names = "--subtask",
                 description = "Add subtask(s) to the new task (repeatable)",
@@ -122,20 +124,7 @@ public class TaskCommand {
             }
 
             // Interactive fallback
-            System.out.println("Enter task description. Type END on a new line to finish:");
-
-            Scanner scanner = new Scanner(System.in);
-            StringBuilder sb = new StringBuilder();
-
-            while (true) {
-                String line = scanner.nextLine();
-                if ("END".equalsIgnoreCase(line.trim())) {
-                    break;
-                }
-                sb.append(line).append("\n");
-            }
-
-            return sb.toString().trim();
+            return CliPrompt.promptMultiline("Enter task description");
         }
     }
 
@@ -146,12 +135,97 @@ public class TaskCommand {
     @Command(name = "list", description = "List tasks for a project")
     static class ListTasks implements Runnable {
 
+        // Column widths (fixed except TITLE which is dynamic)
+        private static final int W_ID       = 4;
+        private static final int W_STATUS   = 12;
+        private static final int W_PRI      = 4;
+        private static final int W_SUBTASKS = 10;
+        // separators between columns: 4 gaps × 2 chars = 8
+        private static final int W_FIXED    = W_ID + W_STATUS + W_PRI + W_SUBTASKS + 8;
+        private static final int W_TITLE_MIN = 20;
+
         @Parameters(index = "0", description = "Project name")
         private String projectName;
 
         @Override
         public void run() {
-            taskService.listTasks(projectName);
+            List<Task> tasks = taskService.getTasks(projectName);
+
+            if (tasks.isEmpty()) {
+                ConsolePrinter.info("No tasks found for project: " + projectName);
+                return;
+            }
+
+            int termWidth = terminalWidth();
+            int titleWidth = Math.max(W_TITLE_MIN, termWidth - W_FIXED);
+
+            Map<TaskStatus, List<Task>> grouped = tasks.stream()
+                    .collect(Collectors.groupingBy(Task::getStatus));
+
+            System.out.println();
+            ConsolePrinter.table(
+                    new String[]{"ID", "STATUS", "PRI", "TITLE", "SUBTASKS"},
+                    List.of(),   // no rows — just print headers once
+                    new int[]{W_ID, W_STATUS, W_PRI, titleWidth, W_SUBTASKS}
+            );
+
+            boolean firstGroup = true;
+            for (TaskStatus status : TaskStatus.values()) {
+                List<Task> group = grouped.getOrDefault(status, List.of());
+                if (group.isEmpty()) continue;
+
+                if (!firstGroup) {
+                    System.out.println(
+                            "\u001B[2m" + "─".repeat(W_ID + W_STATUS + W_PRI + titleWidth + W_SUBTASKS + 8) + "\u001B[0m");
+                }
+                firstGroup = false;
+
+                group.stream()
+                        .sorted(Comparator.comparingInt(Task::getId))
+                        .forEach(t -> printRow(t, titleWidth));
+            }
+            System.out.println();
+        }
+
+        private static void printRow(Task task, int titleWidth) {
+            String id      = "#" + task.getId();
+            String status  = ConsolePrinter.statusBadge(task.getStatus());
+            String pri     = ConsolePrinter.priorityBadge(task.getPriority());
+            String rawTitle = task.getTitle();
+            String title   = rawTitle.length() > titleWidth
+                    ? rawTitle.substring(0, titleWidth - 3) + "..."
+                    : rawTitle;
+            String subtasks = task.hasSubtasks()
+                    ? task.getDoneSubtaskCount() + "/" + task.getTotalSubtaskCount() + " \u2713"
+                    : "";
+
+            System.out.println(
+                    ConsolePrinter.padRight(id,      W_ID)      + "  " +
+                    ConsolePrinter.padRight(status,  W_STATUS)  + "  " +
+                    ConsolePrinter.padRight(pri,     W_PRI)     + "  " +
+                    ConsolePrinter.padRight(title,   titleWidth) + "  " +
+                    subtasks
+            );
+        }
+
+        private static String statusLabel(TaskStatus status) {
+            return switch (status) {
+                case OPEN        -> "Open";
+                case IN_PROGRESS -> "In Progress";
+                case DONE        -> "Done";
+            };
+        }
+
+        private static int terminalWidth() {
+            try {
+                org.jline.terminal.Terminal t =
+                        org.jline.terminal.TerminalBuilder.builder().dumb(true).build();
+                int w = t.getWidth();
+                t.close();
+                return (w > 0) ? w : 100;
+            } catch (Exception e) {
+                return 100;
+            }
         }
     }
 
@@ -197,7 +271,6 @@ public class TaskCommand {
 
     // ======================
     // SHOW
-    // FIX: now displays subtasks after the description
     // ======================
 
     @Command(name = "show", description = "Show full task details including subtasks")
@@ -218,20 +291,19 @@ public class TaskCommand {
                     .ifPresentOrElse(task -> {
 
                         System.out.println();
-                        System.out.println("Task #" + task.getId()
-                                + "  [P" + task.getPriority() + "]"
-                                + "  " + task.getStatus());
-                        System.out.println("Created: " + task.getCreatedDate());
-                        System.out.println();
-                        System.out.println("Description:");
-                        System.out.println();
+                        ConsolePrinter.header("Task #" + task.getId());
+                        System.out.println(
+                                "  " + ConsolePrinter.priorityBadge(task.getPriority())
+                                + "  " + ConsolePrinter.statusBadge(task.getStatus())
+                                + "  Created: " + task.getCreatedDate());
+                        ConsolePrinter.separator();
 
                         // Strip inline metadata comments before display
                         String desc = task.getDescription()
                                 .replaceAll("<!--.*?-->", "").trim();
                         System.out.println(desc);
 
-                        // ── Subtasks section (NEW) ──────────────────────
+                        // ── Subtasks section ─────────────────────────────────────
                         if (task.hasSubtasks()) {
 
                             List<SubTask> subtasks = task.getSubtasks();
@@ -239,11 +311,16 @@ public class TaskCommand {
                             int total = task.getTotalSubtaskCount();
 
                             System.out.println();
-                            System.out.println("Subtasks (" + done + "/" + total + " done):");
+                            ConsolePrinter.separator();
+                            System.out.println("  Subtasks  " +
+                                    ConsolePrinter.progressBar(done, total, 12));
+                            System.out.println();
 
                             for (int i = 0; i < subtasks.size(); i++) {
                                 SubTask st = subtasks.get(i);
-                                String tick = st.isDone() ? "✓" : "○";
+                                String tick = st.isDone()
+                                        ? "\u001B[32m✓\u001B[0m"
+                                        : "\u001B[2m○\u001B[0m";
                                 System.out.println("  " + i + ".  " + tick + "  " + st.getTitle());
                             }
                         }
@@ -278,17 +355,6 @@ public class TaskCommand {
 
     // ============================================================
     // SUBTASK GROUP
-    //
-    // SubtaskGroup is the "subtask" named group registered on TaskCommand.
-    // Its four sub-subcommands are declared as direct static inner classes
-    // of TaskCommand (same level as Add, Done, etc.) so that Picocli can
-    // resolve them without ambiguity at runtime.
-    //
-    // Usage:
-    //   workctl task subtask add    <project> <task-id> "<title>"
-    //   workctl task subtask done   <project> <task-id> <index>
-    //   workctl task subtask list   <project> <task-id>
-    //   workctl task subtask delete <project> <task-id> <index>
     // ============================================================
 
     @Command(
@@ -415,8 +481,7 @@ public class TaskCommand {
             taskService.getTask(projectName, taskId).ifPresentOrElse(task -> {
 
                 System.out.println();
-                System.out.println("Subtasks for Task #" + taskId + " - " + task.getTitle());
-                System.out.println();
+                ConsolePrinter.header("Subtasks — Task #" + taskId);
 
                 List<SubTask> subs = task.getSubtasks();
 
@@ -427,12 +492,14 @@ public class TaskCommand {
                 }
 
                 int done = task.getDoneSubtaskCount();
-                System.out.println("Progress: " + done + "/" + subs.size() + " done");
+                System.out.println("  " + ConsolePrinter.progressBar(done, subs.size(), 16));
                 System.out.println();
 
                 for (int i = 0; i < subs.size(); i++) {
                     SubTask st = subs.get(i);
-                    String tick = st.isDone() ? "✓" : "○";
+                    String tick = st.isDone()
+                            ? "\u001B[32m✓\u001B[0m"
+                            : "\u001B[2m○\u001B[0m";
                     System.out.println("  " + i + ".  " + tick + "  " + st.getTitle());
                 }
 

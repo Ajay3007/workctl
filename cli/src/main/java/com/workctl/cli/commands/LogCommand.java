@@ -1,5 +1,6 @@
 package com.workctl.cli.commands;
 
+import com.workctl.cli.util.CliPrompt;
 import com.workctl.cli.util.EditorUtil;
 import com.workctl.config.AppConfig;
 import com.workctl.config.ConfigManager;
@@ -14,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.stream.Collectors;
 
 @Command(
@@ -62,11 +62,10 @@ public class LogCommand implements Runnable {
                     tags
             );
 
-            System.out.println("Log updated successfully.");
+            ConsolePrinter.success("Log updated successfully.");
 
         } catch (Exception e) {
-            System.out.println("Failed to update log");
-            e.printStackTrace();
+            ConsolePrinter.error("Failed to update log: " + e.getMessage());
         }
     }
 
@@ -88,20 +87,7 @@ public class LogCommand implements Runnable {
         }
 
         // 4️⃣ Interactive mode
-        System.out.println("Enter log message. Type END on a new line to finish:");
-
-        Scanner scanner = new Scanner(System.in);
-        StringBuilder sb = new StringBuilder();
-
-        while (true) {
-            String line = scanner.nextLine();
-            if ("END".equalsIgnoreCase(line.trim())) {
-                break;
-            }
-            sb.append(line).append("\n");
-        }
-
-        return sb.toString().trim();
+        return CliPrompt.promptMultiline("Enter log message");
     }
 
 

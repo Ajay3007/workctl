@@ -1,18 +1,14 @@
 package com.workctl.cli.commands;
 
+import com.workctl.cli.util.CliPrompt;
+import com.workctl.cli.util.ConsolePrinter;
 import com.workctl.config.AppConfig;
 import com.workctl.config.ConfigManager;
-import com.workctl.core.service.ProjectService;
 import com.workctl.core.domain.Project;
-import com.workctl.cli.util.ConsolePrinter;
+import com.workctl.core.service.ProjectService;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
-import java.nio.file.Path;
-import java.util.List;
-
-
-
 import java.nio.file.Path;
 import java.util.List;
 
@@ -86,11 +82,11 @@ public class ProjectCommand implements Runnable {
                 AppConfig config = ConfigManager.load();
                 Path workspace = Path.of(config.getWorkspace());
 
-                System.out.print("Type the project name to confirm deletion [" + projectName + "]: ");
-                String confirmation = new java.util.Scanner(System.in).nextLine().trim();
+                boolean confirmed = CliPrompt.confirm(
+                        "Delete project \"" + projectName + "\" and ALL its data?");
 
-                if (!confirmation.equals(projectName)) {
-                    ConsolePrinter.warning("Deletion cancelled — name did not match.");
+                if (!confirmed) {
+                    ConsolePrinter.warning("Deletion cancelled.");
                     return;
                 }
 
@@ -128,10 +124,10 @@ public class ProjectCommand implements Runnable {
                     return;
                 }
 
-                ConsolePrinter.info("Projects:");
+                ConsolePrinter.header("Projects");
 
                 projects.forEach(p ->
-                        System.out.println("  - " + p.getName())
+                        System.out.println("  \u001B[36m▸\u001B[0m " + p.getName())
                 );
 
             } catch (Exception e) {

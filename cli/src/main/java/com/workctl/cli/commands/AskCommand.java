@@ -1,9 +1,22 @@
 package com.workctl.cli.commands;
 
 import com.workctl.agent.AgentService;
+import com.workctl.cli.util.CliPrompt;
+import com.workctl.cli.util.CliSpinner;
+import com.workctl.cli.util.ConsolePrinter;
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.UserInterruptException;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * workctl ask <project> "your question or instruction"
@@ -13,20 +26,10 @@ import picocli.CommandLine.Parameters;
  * Examples:
  *   workctl ask myproject "What did I work on this week?"
  *   workctl ask myproject "Which P1 tasks are stagnant?"
- *   workctl ask myproject "Give me project health insights"
  *   workctl ask myproject --act "Break down the logging feature into tasks"
- *   workctl ask myproject --act "Mark task 52 as done"
- *
- * Flags:
- *   --act     Enables write mode: agent can add tasks and move task status.
- *             Without this flag, agent is read-only (safe by default).
- *
- *   --weekly  Generate an AI-powered weekly summary.
- *             workctl ask myproject --weekly
- *             workctl ask myproject --weekly --from 2026-02-11 --to 2026-02-17
- *
- *   --insight Generate AI-powered project insights (richer than workctl insight).
- *             workctl ask myproject --insight
+ *   workctl ask myproject --weekly
+ *   workctl ask myproject --insight
+ *   workctl ask myproject          ← launches interactive REPL
  */
 @Command(
         name = "ask",
@@ -67,42 +70,129 @@ public class AskCommand implements Runnable {
     @Override
     public void run() {
 
-        System.out.println("\n🤖 workctl AI Agent — Project: " + projectName);
-        System.out.println("─".repeat(50));
-
-        String response;
+        System.out.println();
+        ConsolePrinter.header("AI Agent — " + projectName);
 
         if (weekly) {
-            // AI-powered weekly summary mode
-            String from = fromDate != null ? fromDate :
-                    java.time.LocalDate.now().minusDays(6).toString();
-            String to = toDate != null ? toDate :
-                    java.time.LocalDate.now().toString();
-
-            System.out.println("📅 Generating AI weekly summary (" + from + " → " + to + ")...\n");
-            response = agentService.weeklyAiSummary(projectName, from, to);
-
+            runWeekly();
         } else if (insight) {
-            // AI-powered insights mode
-            System.out.println("📊 Generating AI project insights...\n");
-            response = agentService.aiInsights(projectName);
-
+            runInsight();
         } else if (question.isBlank()) {
-            // No question given
-            System.out.println("Please provide a question or use --weekly / --insight flags.");
-            System.out.println("Example: workctl ask " + projectName + " \"What tasks are stagnant?\"");
-            return;
-
+            runReplMode();
         } else {
-            // Standard ask mode
-            if (act) {
-                System.out.println("✏ Write mode ON — agent may add/move tasks\n");
-            }
-            System.out.println("You: " + question + "\n");
-            response = agentService.ask(projectName, question, act);
+            runSingleQuestion();
+        }
+    }
+
+    private void runWeekly() {
+        String from = fromDate != null ? fromDate :
+                java.time.LocalDate.now().minusDays(6).toString();
+        String to = toDate != null ? toDate :
+                java.time.LocalDate.now().toString();
+
+        ConsolePrinter.info("Generating AI weekly summary (" + from + " → " + to + ")...");
+        System.out.println();
+
+        CliSpinner spinner = new CliSpinner("Analyzing");
+        spinner.start();
+        String response;
+        try {
+            response = agentService.weeklyAiSummary(projectName, from, to);
+        } finally {
+            spinner.stop();
         }
 
-        System.out.println("Agent: " + response);
-        System.out.println("─".repeat(50) + "\n");
+        System.out.println("\u001B[36mAgent:\u001B[0m " + response);
+        ConsolePrinter.separator();
+        System.out.println();
+    }
+
+    private void runInsight() {
+        ConsolePrinter.info("Generating AI project insights...");
+        System.out.println();
+
+        CliSpinner spinner = new CliSpinner("Analyzing project");
+        spinner.start();
+        String response;
+        try {
+            response = agentService.aiInsights(projectName);
+        } finally {
+            spinner.stop();
+        }
+
+        System.out.println("\u001B[36mAgent:\u001B[0m " + response);
+        ConsolePrinter.separator();
+        System.out.println();
+    }
+
+    private void runSingleQuestion() {
+        if (act) {
+            ConsolePrinter.info("Write mode ON — agent may add/move tasks");
+            System.out.println();
+        }
+        System.out.println("You: " + question);
+        System.out.println();
+
+        CliSpinner spinner = new CliSpinner("Thinking");
+        spinner.start();
+        String response;
+        try {
+            response = agentService.ask(projectName, question, act);
+        } finally {
+            spinner.stop();
+        }
+
+        System.out.println("\u001B[36mAgent:\u001B[0m " + response);
+        ConsolePrinter.separator();
+        System.out.println();
+    }
+
+    private void runReplMode() {
+        try {
+            Path historyFile = Path.of(System.getProperty("user.home"), ".workctl", "ask_history");
+            Files.createDirectories(historyFile.getParent());
+
+            Terminal terminal = TerminalBuilder.builder().dumb(true).build();
+            LineReader reader = LineReaderBuilder.builder()
+                    .terminal(terminal)
+                    .variable(LineReader.HISTORY_FILE, historyFile)
+                    .build();
+
+            ConsolePrinter.info("REPL mode — Ctrl+D to exit, Ctrl+C to skip line");
+            System.out.println();
+
+            while (true) {
+                String input;
+                try {
+                    input = reader.readLine("\u001B[36mYou › \u001B[0m");
+                } catch (UserInterruptException e) {
+                    // Ctrl+C: skip current input, continue loop
+                    System.out.println();
+                    continue;
+                } catch (EndOfFileException e) {
+                    // Ctrl+D: exit
+                    break;
+                }
+                if (input == null || input.isBlank()) continue;
+
+                CliSpinner spinner = new CliSpinner("Thinking");
+                spinner.start();
+                String response;
+                try {
+                    response = agentService.ask(projectName, input, act);
+                } finally {
+                    spinner.stop();
+                }
+
+                System.out.println("\u001B[36mAgent:\u001B[0m " + response);
+                System.out.println();
+            }
+
+            terminal.close();
+            ConsolePrinter.info("Goodbye.");
+
+        } catch (IOException e) {
+            ConsolePrinter.error("Failed to start REPL: " + e.getMessage());
+        }
     }
 }
