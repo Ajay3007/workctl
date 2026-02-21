@@ -40,6 +40,21 @@
             <ListView fx:id="projectListView"
                       VBox.vgrow="ALWAYS"/>
 
+            <!-- Delete Project button -->
+            <Button fx:id="deleteProjectBtn"
+                    text="✕ Delete Project"
+                    onAction="#handleDeleteProject"
+                    maxWidth="Infinity"
+                    style="
+                        -fx-background-color: #e74c3c;
+                        -fx-text-fill: white;
+                        -fx-font-weight: bold;
+                        -fx-font-size: 12;
+                        -fx-background-radius: 6;
+                        -fx-padding: 7 12 7 12;
+                        -fx-cursor: hand;
+                    "/>
+
         </VBox>
     </left>
 
