@@ -61,7 +61,7 @@ tasks.register('generateCompletion', Exec) {
 
     if (isWindows) {
         // No-op on Windows — bash/zsh completion not applicable
-        commandLine 'cmd', '/c', 'echo Skipping completion generation on Windows (bash/zsh not available). To use completions in Git Bash or WSL run: workctl generate-completion bash > ~/.workctl/workctl_completion'
+        commandLine 'cmd', '/c', 'echo Skipping completion generation on Windows (bash/zsh not available). To use completions in Git Bash or WSL run: workctl generate-completion bash ^> ~/.workctl/workctl_completion'
     } else {
         completionFile.parentFile.mkdirs()
         // Generate base completion then append dynamic project-name patch
