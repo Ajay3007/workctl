@@ -279,19 +279,22 @@ workctl-build
 
 ---
 
-## 8. Building a Portable Executable (GUI)
+## 8. Building Portable Executables (GUI & CLI)
 
-This produces a self-contained app that anyone can run with a double-click — **no Java or JavaFX installation needed** on the target machine.
+This produces self-contained binaries that anyone can run — **no Java or JavaFX installation needed** on the target machine.
 
 ### How it works
 
-`jpackage` bundles a trimmed JRE + JavaFX + all app JARs into a single native package. The output differs per platform:
+`jpackage` (bundled with JDK 14+) bundles a trimmed JRE + JavaFX + all app JARs into a single native package. `jpackage` is resolved automatically from the running JDK — it does **not** need to be on your PATH.
 
-| Platform | Output | How recipient runs it |
-|----------|--------|-----------------------|
-| macOS | `build/release/workctl-gui.app` | Double-click the `.app` |
-| Windows | `build/release/workctl-gui/workctl-gui.exe` | Double-click the `.exe` |
-| Linux | `build/release/workctl-gui_*.deb` | `sudo dpkg -i workctl-gui*.deb` |
+The output differs per platform:
+
+| Artifact | Platform | Output | How recipient runs it |
+| -------- | -------- | ------ | --------------------- |
+| GUI | macOS | `build/release/workctl-gui.app` | Double-click the `.app` |
+| GUI | Windows | `build/release/workctl-gui/workctl-gui.exe` | Double-click the `.exe` |
+| GUI | Linux | `build/release/workctl-gui_*.deb` | `sudo dpkg -i workctl-gui*.deb` |
+| CLI | All | `build/release/workctl/workctl[.exe]` | Run from terminal |
 
 ---
 
@@ -344,11 +347,16 @@ javafxJmods=C:/path/to/javafx-jmods-21.x.x
 javafxBin=C:/path/to/javafx-sdk-21.x.x/bin
 ```
 
+> **Windows — use forward slashes only.**
+> Backslashes are escape characters in `.properties` files. `C:\Softwares\javafx-jmods-21`
+> is silently mangled to `C:Softwaresjavafx-jmods-21`, causing a `Module javafx.web not found`
+> error at build time. Always write paths with `/` as shown above.
+>
 > See `gradle.properties.example` in the project root for a ready-to-copy template.
 
 ---
 
-### Step 3 — Build the package
+### Step 3 — Build the GUI package
 
 ```bash
 # macOS / Linux
@@ -361,8 +369,39 @@ gradlew.bat :gui:packageApp
 To also produce a ready-to-share zip:
 
 ```bash
+# macOS / Linux
 ./gradlew :gui:packageZip
 # → gui/build/distributions/workctl-gui-<version>-<platform>.zip
+
+# Windows
+gradlew.bat :gui:packageZip
+```
+
+---
+
+### Step 4 — Build the CLI portable executable (optional)
+
+The CLI can also be packaged as a self-contained native executable. No JavaFX SDK is needed — only the JDK (already required for the GUI step).
+
+```bash
+# macOS / Linux
+./gradlew :cli:packageNative
+# → build/release/workctl/workctl
+
+# Windows
+gradlew.bat :cli:packageNative
+# → build/release/workctl/workctl.exe
+```
+
+To produce a ready-to-share zip of the CLI:
+
+```bash
+# macOS / Linux
+./gradlew :cli:packageZip
+
+# Windows
+gradlew.bat :cli:packageZip
+# → cli/build/distributions/workctl-<version>-windows.zip
 ```
 
 ---
@@ -373,8 +412,12 @@ To also produce a ready-to-share zip:
 1. Recipient unzips → double-clicks `workctl-gui.app`
 2. If macOS blocks the app (unsigned): **right-click → Open** once, then it runs normally every time
 
-**Windows** — send `workctl-gui-<version>-windows.zip`:
+**Windows (GUI)** — send `workctl-gui-<version>-windows.zip`:
 1. Recipient unzips the folder → double-clicks `workctl-gui.exe`
+
+**Windows (CLI)** — send `workctl-<version>-windows.zip`:
+
+1. Recipient unzips → runs `workctl.exe` from a terminal or adds the folder to PATH
 
 ---
 
@@ -382,6 +425,12 @@ To also produce a ready-to-share zip:
 
 **`JavaFX path not configured`**
 The `javafxJmods` property is missing. Add it to `~/.gradle/gradle.properties` (Step 2 above).
+
+**`Module javafx.web not found` (Windows)**
+The paths in `~/.gradle/gradle.properties` use backslashes. Java's properties parser treats `\` as an escape character, silently stripping it and mangling the path. Replace all `\` with `/` in the file — see the warning in Step 2.
+
+**`jpackage: command not found` / `jpackage not on PATH`**
+`jpackage` is resolved automatically from the running JDK — it does not need to be on your PATH. This error means Gradle is using a JRE rather than a full JDK. Ensure `JAVA_HOME` points to a JDK 17+ installation (e.g. `C:\Program Files\Java\jdk-21`).
 
 **`The first number in an app-version cannot be zero or negative`**
 This is handled automatically — the build script maps `0.x.x` to `1.x.x` for jpackage. If you see it, check you're running the latest `gui/build.gradle`.

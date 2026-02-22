@@ -134,11 +134,7 @@ tasks.register('cleanPackage') {
     doLast {
         def appDir = file("${rootDir}/build/release/workctl")
         if (appDir.exists()) {
-            if (isWindows) {
-                exec { commandLine 'cmd', '/c', "rmdir /s /q \"${appDir.absolutePath}\"" }
-            } else {
-                exec { commandLine 'rm', '-rf', appDir.absolutePath }
-            }
+            appDir.deleteDir()
             println "  Deleted: ${appDir}"
         }
         file("${rootDir}/build/release").mkdirs()
@@ -164,8 +160,11 @@ tasks.register('packageNative', Exec) {
         outDir.mkdirs()
         def libDir = file("${buildDir}/install/workctl/lib").absolutePath
 
+        def jpackageExe = new File(System.getProperty('java.home'),
+                isWindows ? 'bin/jpackage.exe' : 'bin/jpackage').absolutePath
+
         def cmd = [
-                'jpackage',
+                jpackageExe,
                 '--type',         'app-image',
                 '--name',         'workctl',
                 '--app-version',  version,

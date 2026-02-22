@@ -66,6 +66,7 @@ ext {
 tasks.register('cleanPackage') {
     group       = 'workctl distribution'
     description = 'Remove previous packaged output from build/release/'
+    outputs.upToDateWhen { false }   // always run — jpackage fails if output dir exists
     doLast {
         def releaseDir = file("${rootDir}/build/release")
         releaseDir.mkdirs()
@@ -142,8 +143,11 @@ tasks.register('packageApp', Exec) {
             ? '1.' + version.toString().replaceFirst('^0\\.', '')
             : version.toString()
 
+        def jpackageExe = new File(System.getProperty('java.home'),
+                os.isWindows() ? 'bin/jpackage.exe' : 'bin/jpackage').absolutePath
+
         def cmd = [
-            'jpackage',
+            jpackageExe,
             '--type',         pkgType,
             '--name',         'workctl-gui',
             '--app-version',  pkgVersion,
