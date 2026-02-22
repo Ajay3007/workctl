@@ -1,3 +1,5 @@
+import org.gradle.internal.os.OperatingSystem
+
 plugins {
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.1.0'
@@ -37,121 +39,226 @@ jar {
     }
 }
 
-// ── JavaFX paths (your exact installation) ───────────────────────
+// ── Platform detection ────────────────────────────────────────────
+def os = OperatingSystem.current()
+
+// ── JavaFX native paths ───────────────────────────────────────────
+//
+//  Set these ONCE in ~/.gradle/gradle.properties (never commit them):
+//
+//  macOS / Linux:
+//    javafxJmods=/Users/you/javafx-sdk-21/javafx-jmods-21
+//    javafxBin=/Users/you/javafx-sdk-21/lib
+//
+//  Windows:
+//    javafxJmods=C:/javafx-sdk-21/javafx-jmods-21
+//    javafxBin=C:/javafx-sdk-21/bin
+//
+//  Download JavaFX SDK: https://gluonhq.com/products/javafx/
+//  (choose the matching platform, SDK type, Java 21)
+//
 ext {
-    javafxJmods = "C:/Softwares/javafx-sdk-21/javafx-jmods-21"   // .jmod files → jlink uses these
-    javafxBin   = "C:/Softwares/javafx-sdk-21/bin"               // .dll files  → copied into runtime
+    javafxJmods = project.findProperty('javafxJmods') ?: ''
+    javafxBin   = project.findProperty('javafxBin')   ?: ''
 }
 
-// ── Delete previous package (Windows-safe using cmd rmdir) ───────
-tasks.register('cleanPackage', Exec) {
-    group     = 'workctl distribution'
-    onlyIf    { file("${rootDir}/build/release/workctl-gui").exists() }
-    commandLine 'cmd', '/c',
-            "rmdir /s /q \"${rootDir}\\build\\release\\workctl-gui\""
-    doLast { file("${rootDir}/build/release").mkdirs() }
-}
-
-// ── Package as native .exe (no Java needed on target) ────────────
-//
-// How it works:
-//   1. installDist → gui/build/install/workctl-gui/lib/  (all JARs incl. JavaFX JARs)
-//   2. jpackage reads --module-path javafxJmods so jlink builds a JRE with JavaFX modules
-//   3. doLast copies DLLs from javafxBin into the bundled runtime/bin/
-//   4. Result: workctl-gui/ folder with workctl-gui.exe — fully standalone
-//
-// Run:    ./gradlew :gui:packageNative
-// Output: build/release/workctl-gui/workctl-gui.exe
-
-tasks.register('packageNative', Exec) {
+// ── Clean previous package output ────────────────────────────────
+tasks.register('cleanPackage') {
     group       = 'workctl distribution'
-    description = 'Package GUI as native .exe — no Java or JavaFX needed on target machine'
+    description = 'Remove previous packaged output from build/release/'
+    doLast {
+        def releaseDir = file("${rootDir}/build/release")
+        releaseDir.mkdirs()
+        releaseDir.listFiles()?.each { f ->
+            if (f.name.startsWith('workctl-gui')) {
+                if (f.isDirectory()) f.deleteDir() else f.delete()
+            }
+        }
+    }
+}
+
+// ── Package as a native self-contained app ────────────────────────
+//
+//  Uses jpackage + jlink to bundle a trimmed JRE + JavaFX into a
+//  single distributable — no Java installation needed on target.
+//
+//  Output per platform:
+//    macOS   → build/release/workctl-gui.dmg
+//              Open DMG → drag workctl-gui.app to /Applications → double-click
+//
+//    Windows → build/release/workctl-gui/workctl-gui.exe
+//              Zip the workctl-gui/ folder and send it — double-click .exe
+//
+//    Linux   → build/release/workctl-gui_<version>_amd64.deb
+//              Install with:  sudo dpkg -i workctl-gui*.deb
+//
+//  Requires: javafxJmods set in ~/.gradle/gradle.properties (see above)
+//
+//  Run:    ./gradlew :gui:packageApp
+//
+tasks.register('packageApp', Exec) {
+    group       = 'workctl distribution'
+    description = 'Package GUI as a native self-contained app (no Java needed on target)'
     dependsOn   installDist, cleanPackage
 
     doFirst {
+        // ── Guard: fail early with a helpful message ─────────────
+        if (!javafxJmods || javafxJmods.toString().isBlank()) {
+            throw new GradleException("""
+╔══════════════════════════════════════════════════════════════════╗
+║              JavaFX path not configured                          ║
+╠══════════════════════════════════════════════════════════════════╣
+║  Add the following to  ~/.gradle/gradle.properties              ║
+║  (create the file if it doesn't exist):                          ║
+║                                                                  ║
+║  macOS / Linux:                                                  ║
+║    javafxJmods=/path/to/javafx-jmods-21                         ║
+║    javafxBin=/path/to/javafx-sdk-21/lib                         ║
+║                                                                  ║
+║  Windows:                                                        ║
+║    javafxJmods=C:/path/to/javafx-jmods-21                       ║
+║    javafxBin=C:/path/to/javafx-sdk-21/bin                       ║
+║                                                                  ║
+║  Download JavaFX SDK (Java 21, your platform):                   ║
+║    https://gluonhq.com/products/javafx/                          ║
+╚══════════════════════════════════════════════════════════════════╝
+""")
+        }
+
         def outDir = file("${rootDir}/build/release")
+        def libDir = file("${buildDir}/install/workctl-gui/lib").absolutePath
         outDir.mkdirs()
 
-        def libDir = file("${buildDir}/install/workctl-gui/lib").absolutePath
+        // Package type: app-image on Windows/macOS (portable self-contained folder/bundle),
+        //               deb on Linux (apt-installable package).
+        //
+        // macOS note: 'dmg' requires version to start with a digit ≥ 1.
+        // 'app-image' produces a .app bundle — double-click to run, zip to share.
+        def pkgType = os.isLinux() ? 'deb' : 'app-image'
 
-        commandLine = [
-                'jpackage',
-                '--type',         'app-image',
-                '--name',         'workctl-gui',
-                '--app-version',  version,
+        // macOS (and Windows) jpackage requires version to start with 1-9.
+        // Project version 0.1.0 → package version 1.1.0 (adds 1 to the major).
+        def pkgVersion = version.toString().startsWith('0.')
+            ? '1.' + version.toString().replaceFirst('^0\\.', '')
+            : version.toString()
 
-                // Input: all JARs from installDist (includes JavaFX JARs from Maven)
-                '--input',        libDir,
-                '--main-jar',     "gui-${version}.jar",
-                '--main-class',   application.mainClass.get(),
-
-                // Output
-                '--dest',         outDir.absolutePath,
-
-                // JavaFX jmods — jlink needs these to include JavaFX in the bundled JRE
-                '--module-path',  javafxJmods,
-                '--add-modules',  'javafx.controls,javafx.fxml,javafx.web',
-
-                // JVM flags for the bundled launcher
-                '--java-options', '--add-opens=java.base/java.lang=ALL-UNNAMED',
-                '--java-options', '--add-opens=java.base/java.io=ALL-UNNAMED',
-                '--java-options', '--add-exports=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED',
+        def cmd = [
+            'jpackage',
+            '--type',         pkgType,
+            '--name',         'workctl-gui',
+            '--app-version',  pkgVersion,
+            '--input',        libDir,
+            '--main-jar',     "gui-${version}.jar",
+            '--main-class',   application.mainClass.get(),
+            '--dest',         outDir.absolutePath,
+            // jlink uses the jmods to build a trimmed JRE with JavaFX baked in
+            '--module-path',  javafxJmods,
+            '--add-modules',  'javafx.controls,javafx.fxml,javafx.web',
+            // JVM flags passed to the bundled launcher
+            '--java-options', '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--java-options', '--add-opens=java.base/java.io=ALL-UNNAMED',
+            '--java-options', '--add-exports=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED',
         ]
 
-        def icon = file("src/main/resources/icon.ico")
-        if (icon.exists()) {
-            commandLine += ['--icon', icon.absolutePath]
+        // Platform-specific icon
+        if (os.isWindows()) {
+            def icon = file("src/main/resources/icon.ico")
+            if (icon.exists()) cmd += ['--icon', icon.absolutePath]
+        } else if (os.isMacOsX()) {
+            def icon = file("src/main/resources/icon.icns")
+            if (icon.exists()) cmd += ['--icon', icon.absolutePath]
+            // App name shown in macOS menu bar / About dialog
+            cmd += ['--mac-package-name', 'workctl']
+        } else {
+            def icon = file("src/main/resources/icon.png")
+            if (icon.exists()) cmd += ['--icon', icon.absolutePath]
         }
+
+        commandLine = cmd
     }
 
-    // Copy native DLLs from JavaFX SDK bin/ into the bundled runtime/bin/
-    // jpackage includes the JavaFX module JARs but not always the native .dll files
     doLast {
-        def runtimeBin = file("${rootDir}/build/release/workctl-gui/runtime/bin")
-        def srcBin     = file(javafxBin)
-
-        if (runtimeBin.exists()) {
-            println "  Copying JavaFX native DLLs into runtime/bin/ ..."
-            srcBin.listFiles().each { f ->
-                if (f.name.endsWith('.dll')) {
+        // Windows: jpackage occasionally misses native JavaFX DLLs — copy them in
+        if (os.isWindows() && javafxBin) {
+            def runtimeBin = file("${rootDir}/build/release/workctl-gui/runtime/bin")
+            def srcBin     = file(javafxBin)
+            if (runtimeBin.exists() && srcBin.exists()) {
+                println "  Copying JavaFX native DLLs..."
+                srcBin.listFiles()?.findAll { it.name.endsWith('.dll') }?.each { f ->
                     def dest = new File(runtimeBin, f.name)
                     if (!dest.exists()) {
                         java.nio.file.Files.copy(
-                                f.toPath(), dest.toPath(),
-                                java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                        )
+                            f.toPath(), dest.toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                     }
                 }
             }
-            println "  Done."
         }
 
         println ""
-        println "✓ GUI packaged → build/release/workctl-gui/workctl-gui.exe"
-        println "  Share the entire workctl-gui/ folder."
-        println "  No Java or JavaFX needed on the target machine."
+        println "══════════════════════════════════════════════════════"
+        if (os.isWindows()) {
+            println "  ✓  Packaged → build/release/workctl-gui/"
+            println ""
+            println "  To share:  zip the workctl-gui/ folder"
+            println "  To run:    workctl-gui/workctl-gui.exe"
+            println "  No Java or JavaFX needed on the target machine."
+        } else if (os.isMacOsX()) {
+            println "  ✓  Packaged → build/release/workctl-gui.app"
+            println ""
+            println "  To share:  zip the workctl-gui.app bundle and send it"
+            println "  To run:    double-click workctl-gui.app"
+            println "             (if blocked by Gatekeeper: right-click → Open)"
+            println "  No Java or JavaFX needed on the target machine."
+        } else {
+            println "  ✓  Packaged → build/release/workctl-gui*.deb"
+            println ""
+            println "  To install:  sudo dpkg -i build/release/workctl-gui*.deb"
+            println "  To run:      workctl-gui"
+        }
+        println "══════════════════════════════════════════════════════"
     }
 }
 
-// ── Zip for sharing ───────────────────────────────────────────────
-// Run:    ./gradlew :gui:packageZip
-// Output: gui/build/distributions/workctl-gui-x.x.x-windows.zip
+// ── packageNative — kept as backward-compatible alias ─────────────
+tasks.register('packageNative') {
+    group       = 'workctl distribution'
+    description = 'Alias for packageApp (kept for backward compatibility)'
+    dependsOn   packageApp
+}
 
+// ── packageZip — ready-to-share archive ──────────────────────────
+//
+//  macOS:   gui/build/distributions/workctl-gui-<v>-macos.zip
+//             (contains the .dmg — share and open to install)
+//
+//  Windows: gui/build/distributions/workctl-gui-<v>-windows.zip
+//             (contains the app folder — unzip and run .exe)
+//
+//  Linux:   gui/build/distributions/workctl-gui-<v>-linux.zip
+//             (contains the .deb)
+//
+//  Run:  ./gradlew :gui:packageZip
+//
 tasks.register('packageZip', Zip) {
     group               = 'workctl distribution'
-    description         = 'Zip the native GUI package for easy sharing'
-    dependsOn           packageNative
+    description         = 'Create a ready-to-share zip of the packaged app'
+    dependsOn           packageApp
 
-    archiveFileName             = "workctl-gui-${version}-windows.zip"
-    destinationDirectory        = layout.buildDirectory.dir('distributions')
+    def platform = os.isWindows() ? 'windows' : (os.isMacOsX() ? 'macos' : 'linux')
+    archiveFileName          = "workctl-gui-${version}-${platform}.zip"
+    destinationDirectory     = layout.buildDirectory.dir('distributions')
 
-    from("${rootDir}/build/release/workctl-gui")
-    into("workctl-gui-${version}")
+    if (os.isMacOsX()) {
+        from("${rootDir}/build/release") { include 'workctl-gui.app/**' }
+    } else if (os.isWindows()) {
+        from("${rootDir}/build/release/workctl-gui") { into "workctl-gui" }
+    } else {
+        from("${rootDir}/build/release") { include '*.deb' }
+    }
 
     doLast {
-        println "✓ ZIP → gui/build/distributions/workctl-gui-${version}-windows.zip"
-        println "  Extract and run workctl-gui-${version}/workctl-gui.exe"
-        println "  No Java or JavaFX needed."
+        println "✓ ZIP → gui/build/distributions/workctl-gui-${version}-${platform}.zip"
     }
 }
 

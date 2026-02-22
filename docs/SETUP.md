@@ -279,7 +279,122 @@ workctl-build
 
 ---
 
-## 8. Verify Everything Works
+## 8. Building a Portable Executable (GUI)
+
+This produces a self-contained app that anyone can run with a double-click — **no Java or JavaFX installation needed** on the target machine.
+
+### How it works
+
+`jpackage` bundles a trimmed JRE + JavaFX + all app JARs into a single native package. The output differs per platform:
+
+| Platform | Output | How recipient runs it |
+|----------|--------|-----------------------|
+| macOS | `build/release/workctl-gui.app` | Double-click the `.app` |
+| Windows | `build/release/workctl-gui/workctl-gui.exe` | Double-click the `.exe` |
+| Linux | `build/release/workctl-gui_*.deb` | `sudo dpkg -i workctl-gui*.deb` |
+
+---
+
+### Step 1 — Download JavaFX SDK (one-time per machine)
+
+jpackage needs JavaFX's `.jmod` files to bundle JavaFX into the JRE. Download the SDK for your platform from:
+
+**https://gluonhq.com/products/javafx/**
+
+Choose: **Version 21 LTS · your OS · SDK** (not Runtime).
+
+Extract the downloaded zip. You'll have two folders:
+
+```
+javafx-sdk-21.x.x/
+    lib/               ← native libraries (.dylib / .dll / .so)
+javafx-jmods-21.x.x/
+    javafx.base.jmod
+    javafx.controls.jmod
+    ...
+```
+
+> **macOS arm64 example** (JavaFX 21.0.10):
+> ```bash
+> # Download
+> curl -L "https://download2.gluonhq.com/openjfx/21.0.10/openjfx-21.0.10_osx-aarch64_bin-jmods.zip" \
+>      -o ~/Downloads/javafx-jmods.zip
+> curl -L "https://download2.gluonhq.com/openjfx/21.0.10/openjfx-21.0.10_osx-aarch64_bin-sdk.zip" \
+>      -o ~/Downloads/javafx-sdk.zip
+>
+> # Extract
+> cd ~ && unzip ~/Downloads/javafx-jmods.zip && unzip ~/Downloads/javafx-sdk.zip
+> ```
+
+---
+
+### Step 2 — Configure paths (one-time per machine)
+
+Add the following to **`~/.gradle/gradle.properties`** (create the file if it doesn't exist). These are machine-specific and should never be committed.
+
+**macOS / Linux:**
+```properties
+javafxJmods=/path/to/javafx-jmods-21.x.x
+javafxBin=/path/to/javafx-sdk-21.x.x/lib
+```
+
+**Windows:**
+```properties
+javafxJmods=C:/path/to/javafx-jmods-21.x.x
+javafxBin=C:/path/to/javafx-sdk-21.x.x/bin
+```
+
+> See `gradle.properties.example` in the project root for a ready-to-copy template.
+
+---
+
+### Step 3 — Build the package
+
+```bash
+# macOS / Linux
+./gradlew :gui:packageApp
+
+# Windows
+gradlew.bat :gui:packageApp
+```
+
+To also produce a ready-to-share zip:
+
+```bash
+./gradlew :gui:packageZip
+# → gui/build/distributions/workctl-gui-<version>-<platform>.zip
+```
+
+---
+
+### Distributing to someone else
+
+**macOS** — send `workctl-gui-<version>-macos.zip`:
+1. Recipient unzips → double-clicks `workctl-gui.app`
+2. If macOS blocks the app (unsigned): **right-click → Open** once, then it runs normally every time
+
+**Windows** — send `workctl-gui-<version>-windows.zip`:
+1. Recipient unzips the folder → double-clicks `workctl-gui.exe`
+
+---
+
+### Troubleshooting packaging
+
+**`JavaFX path not configured`**
+The `javafxJmods` property is missing. Add it to `~/.gradle/gradle.properties` (Step 2 above).
+
+**`The first number in an app-version cannot be zero or negative`**
+This is handled automatically — the build script maps `0.x.x` to `1.x.x` for jpackage. If you see it, check you're running the latest `gui/build.gradle`.
+
+**`Application destination directory … already exists`**
+Run `./gradlew :gui:cleanPackage` first to clear old output, then retry.
+
+**macOS Gatekeeper blocks the app**
+The app is unsigned. Recipients right-click → Open the first time to bypass the warning. After that it opens normally.
+
+---
+
+## 9. Verify Everything Works
 
 ```bash
 # Check CLI is working
@@ -366,4 +481,4 @@ workctl/
 
 ---
 
-*Last updated: 2026-02-21 — tab completion section expanded with platform matrix, re-source guide, and `--plain` flag docs*
+*Last updated: 2026-02-22 — added Section 8: portable executable / packaging guide*

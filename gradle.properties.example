@@ -1,0 +1,27 @@
+# ══════════════════════════════════════════════════════════════════════
+#  workctl — packaging configuration
+#  ─────────────────────────────────────────────────────────────────────
+#  Copy the block for your OS into  ~/.gradle/gradle.properties
+#  (create the file if it doesn't exist — it applies to all your projects)
+#
+#  These paths are machine-specific and should NEVER be committed.
+# ══════════════════════════════════════════════════════════════════════
+
+# ── Download JavaFX SDK ───────────────────────────────────────────────
+#  URL : https://gluonhq.com/products/javafx/
+#  Pick : Version 21 LTS  |  your OS  |  SDK (not just Runtime)
+#  You need two folders from the download:
+#    - javafx-jmods-21/   (used by jlink to build a trimmed JRE)
+#    - lib/ or bin/       (native .dylib / .dll / .so files)
+
+# ── macOS ─────────────────────────────────────────────────────────────
+#javafxJmods=/Users/YOUR_NAME/javafx-sdk-21/javafx-jmods-21
+#javafxBin=/Users/YOUR_NAME/javafx-sdk-21/lib
+
+# ── Windows ───────────────────────────────────────────────────────────
+#javafxJmods=C:/javafx-sdk-21/javafx-jmods-21
+#javafxBin=C:/javafx-sdk-21/bin
+
+# ── Linux ─────────────────────────────────────────────────────────────
+#javafxJmods=/home/YOUR_NAME/javafx-sdk-21/javafx-jmods-21
+#javafxBin=/home/YOUR_NAME/javafx-sdk-21/lib
