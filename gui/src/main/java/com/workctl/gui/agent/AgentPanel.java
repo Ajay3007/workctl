@@ -1,57 +1,60 @@
 package com.workctl.gui.agent;
 
 import com.workctl.agent.AgentService;
+import com.workctl.gui.ThemeManager;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.web.WebView;
+import javafx.util.Duration;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * AgentPanel — Improved version
+ * AgentPanel — Dark-themed AI chat panel (full-width, no split preview)
  *
- * Changes from v1:
- *   1. Agent bubbles now use selectable TextArea (read-only, styled) so text
- *      can be selected and copied with Ctrl+C / right-click.
- *   2. Right panel: WebView that renders the latest agent response as
- *      proper Markdown HTML — tables, bold, bullets, headers all render correctly.
- *   3. Write mode moved into a clearly labelled toggle button with a
- *      description label that explains what it does.
- *   4. Copy button on each agent bubble for one-click copy.
+ * Agent responses render as themed HTML (markdown) directly in chat bubbles.
+ * Responds to ThemeManager dark/light switching — re-renders all bubble WebViews.
+ *
+ * Preserved features: write mode toggle, quick actions, copy button, send message.
  */
-public class AgentPanel extends HBox {
+public class AgentPanel extends VBox {
 
     private final AgentService agentService = new AgentService();
 
-    // ── Left: Chat ───────────────────────────────────────────────────
-    private VBox chatBox;
+    // ── Chat components ──────────────────────────────────────────────
+    private VBox       chatBox;
     private ScrollPane chatScroll;
-    private TextField inputField;
-    private Button sendButton;
-    private Label statusLabel;
-
-    // ── Right: Markdown Preview ──────────────────────────────────────
-    private WebView markdownView;
-    private Label previewLabel;
+    private TextField  inputField;
+    private Button     sendButton;
+    private Label      statusLabel;
+    private Label      writeModeInfo;
 
     // ── State ────────────────────────────────────────────────────────
     private ToggleButton writeModeBtn;
-    private String currentProject;
-    private String lastAgentResponse = "";
+    private String       currentProject;
+
+    /** Tracks every agent-bubble WebView + its raw markdown for theme re-render */
+    private final List<Map.Entry<WebView, String>> agentBubbles = new ArrayList<>();
 
     public AgentPanel(String projectName) {
         this.currentProject = projectName;
         buildUI();
+        ThemeManager.addListener(() -> Platform.runLater(this::rerenderTheme));
     }
 
     public void setProject(String projectName) {
         this.currentProject = projectName;
         chatBox.getChildren().clear();
+        agentBubbles.clear();
         addAgentBubble("Project switched to **" + projectName + "**. How can I help?");
-        updatePreview("Project switched to **" + projectName + "**. How can I help?");
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -60,52 +63,29 @@ public class AgentPanel extends HBox {
 
     private void buildUI() {
         setSpacing(0);
-        setStyle("-fx-background-color: #f0f2f5;");
 
-        // ── RIGHT PANEL: Markdown Preview ────────────────────────────
-        VBox rightPanel = buildPreviewPanel();
-        rightPanel.setPrefWidth(420);
-        rightPanel.setMinWidth(320);
-        rightPanel.setMaxWidth(500);
-
-        // ── LEFT PANEL: Chat ─────────────────────────────────────────
-        VBox leftPanel = buildChatPanel();
-        HBox.setHgrow(leftPanel, Priority.ALWAYS);
-
-        // Divider
-        Region divider = new Region();
-        divider.setPrefWidth(1);
-        divider.setStyle("-fx-background-color: #dee2e6;");
-
-        getChildren().addAll(leftPanel, divider, rightPanel);
-    }
-
-    // ── LEFT: full chat column ───────────────────────────────────────
-    private VBox buildChatPanel() {
-        VBox panel = new VBox(0);
-
-        // Header
+        // ── Header toolbar ───────────────────────────────────────────
         HBox header = new HBox(10);
-        header.setPadding(new Insets(12, 16, 12, 16));
-        header.setStyle("-fx-background-color: #2c3e50;");
+        header.setPadding(new Insets(10, 16, 10, 16));
         header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("panel-toolbar");
 
         Label title = new Label("🤖 AI Agent");
-        title.setStyle("-fx-text-fill: white; -fx-font-size: 15; -fx-font-weight: bold;");
+        title.getStyleClass().add("panel-toolbar-title");
 
         Label subtitle = new Label("Powered by Claude");
-        subtitle.setStyle("-fx-text-fill: #95a5a6; -fx-font-size: 11;");
+        subtitle.getStyleClass().add("panel-status");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // ── Write Mode Toggle ────────────────────────────────────────
-        // Replaced plain checkbox with a visible toggle button + description
         writeModeBtn = new ToggleButton("✏ Write Mode: OFF");
-        writeModeBtn.setStyle(offStyle());
+        writeModeBtn.getStyleClass().add("panel-toolbar-btn");
         writeModeBtn.selectedProperty().addListener((obs, wasOn, isOn) -> {
             writeModeBtn.setText(isOn ? "✏ Write Mode: ON" : "✏ Write Mode: OFF");
-            writeModeBtn.setStyle(isOn ? onStyle() : offStyle());
+            writeModeBtn.getStyleClass().removeAll("panel-toolbar-btn", "panel-toolbar-btn-active");
+            writeModeBtn.getStyleClass().add(isOn ? "panel-toolbar-btn-active" : "panel-toolbar-btn");
+            updateWriteModeInfo(isOn);
         });
         Tooltip.install(writeModeBtn, new Tooltip(
             "OFF (default) → Agent can only READ your tasks and logs.\n" +
@@ -118,56 +98,18 @@ public class AgentPanel extends HBox {
 
         header.getChildren().addAll(title, subtitle, spacer, writeModeBtn);
 
-        // Write mode description bar — visible below header when ON
-        Label writeModeInfo = new Label(
+        // ── Write mode info bar ──────────────────────────────────────
+        writeModeInfo = new Label(
             "  ✏  Write mode is OFF — agent can read tasks/logs but cannot modify them. " +
             "Toggle ON to let the agent create tasks or change status."
         );
         writeModeInfo.setWrapText(true);
-        writeModeInfo.setStyle("""
-            -fx-background-color: #eaf4fb;
-            -fx-text-fill: #1a5276;
-            -fx-font-size: 11;
-            -fx-padding: 6 16;
-            -fx-border-color: #aed6f1;
-            -fx-border-width: 0 0 1 0;
-            """);
+        applyWriteModeInfoStyle(false);
 
-        writeModeBtn.selectedProperty().addListener((obs, wasOn, isOn) -> {
-            if (isOn) {
-                writeModeInfo.setText(
-                    "  ✏  Write mode is ON — agent can create tasks and change task status. " +
-                    "Turn OFF to return to read-only mode."
-                );
-                writeModeInfo.setStyle("""
-                    -fx-background-color: #fef9e7;
-                    -fx-text-fill: #7d6608;
-                    -fx-font-size: 11;
-                    -fx-padding: 6 16;
-                    -fx-border-color: #f9e79f;
-                    -fx-border-width: 0 0 1 0;
-                    """);
-            } else {
-                writeModeInfo.setText(
-                    "  ✏  Write mode is OFF — agent can read tasks/logs but cannot modify them. " +
-                    "Toggle ON to let the agent create tasks or change status."
-                );
-                writeModeInfo.setStyle("""
-                    -fx-background-color: #eaf4fb;
-                    -fx-text-fill: #1a5276;
-                    -fx-font-size: 11;
-                    -fx-padding: 6 16;
-                    -fx-border-color: #aed6f1;
-                    -fx-border-width: 0 0 1 0;
-                    """);
-            }
-        });
-
-        // Quick Actions
+        // ── Quick actions toolbar ────────────────────────────────────
         HBox quickActions = new HBox(8);
-        quickActions.setPadding(new Insets(10, 16, 10, 16));
-        quickActions.setStyle("-fx-background-color: #ecf0f1; -fx-border-color: #dee2e6; -fx-border-width: 0 0 1 0;");
-
+        quickActions.setPadding(new Insets(9, 16, 9, 16));
+        quickActions.getStyleClass().add("panel-toolbar");
         quickActions.getChildren().addAll(
             quickAction("📅 Weekly Summary",
                 "Generate an AI summary of what I accomplished this week"),
@@ -179,112 +121,96 @@ public class AgentPanel extends HBox {
                 "I'll type a goal and you break it into tasks — ready?")
         );
 
-        // Chat message area
+        // ── Chat area ────────────────────────────────────────────────
         chatBox = new VBox(12);
         chatBox.setPadding(new Insets(16));
 
         chatScroll = new ScrollPane(chatBox);
         chatScroll.setFitToWidth(true);
-        chatScroll.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: transparent;");
+        chatScroll.getStyleClass().add("kanban-col-scroll");
         VBox.setVgrow(chatScroll, Priority.ALWAYS);
 
-        // Welcome
+        // Welcome message
         addAgentBubble(
             "Hi! I'm your AI assistant for **" + currentProject + "**.\n\n" +
-            "I can read your tasks, work logs, and project stats. Ask me anything.\n\n" +
-            "The **Markdown Preview** panel on the right will render my responses " +
-            "with proper formatting — tables, bold text, and bullet points."
+            "I can read your tasks, work logs, and project stats. Ask me anything!"
         );
 
-        // Status
+        // ── Status bar ───────────────────────────────────────────────
         statusLabel = new Label("");
-        statusLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 11; -fx-padding: 4 16;");
+        statusLabel.getStyleClass().add("panel-status");
+        statusLabel.setStyle("-fx-padding: 3 16;");
 
-        // Input row
+        // ── Input row ────────────────────────────────────────────────
         inputField = new TextField();
         inputField.setPromptText("Ask the agent anything about your project...");
-        inputField.setStyle("""
-            -fx-font-size: 13;
-            -fx-padding: 10 14;
-            -fx-background-radius: 20;
-            -fx-border-radius: 20;
-            -fx-border-color: #dee2e6;
-            """);
+        inputField.getStyleClass().add("search-field");
+        inputField.setStyle("-fx-background-radius: 20; -fx-border-radius: 20;");
         HBox.setHgrow(inputField, Priority.ALWAYS);
         inputField.setOnAction(e -> sendMessage());
 
         sendButton = new Button("Send ➤");
-        sendButton.setStyle("""
-            -fx-background-color: linear-gradient(to bottom, #3498db, #2980b9);
-            -fx-text-fill: white;
-            -fx-font-weight: bold;
-            -fx-padding: 10 18;
-            -fx-background-radius: 20;
-            """);
+        sendButton.getStyleClass().add("add-task-btn");
+        sendButton.setStyle("-fx-background-radius: 20;");
         sendButton.setOnAction(e -> sendMessage());
 
         HBox inputRow = new HBox(10, inputField, sendButton);
         inputRow.setPadding(new Insets(12, 16, 16, 16));
-        inputRow.setStyle("-fx-background-color: white; -fx-border-color: #dee2e6; -fx-border-width: 1 0 0 0;");
         inputRow.setAlignment(Pos.CENTER);
+        inputRow.getStyleClass().add("panel-toolbar");
+        inputRow.setStyle("-fx-border-width: 1 0 0 0;"); // top border only
 
-        panel.getChildren().addAll(
-            header, writeModeInfo, quickActions, chatScroll, statusLabel, inputRow
-        );
-
-        return panel;
-    }
-
-    // ── RIGHT: markdown preview column ──────────────────────────────
-    private VBox buildPreviewPanel() {
-        VBox panel = new VBox(0);
-        panel.setStyle("-fx-background-color: white;");
-
-        // Preview header
-        HBox previewHeader = new HBox();
-        previewHeader.setPadding(new Insets(12, 16, 12, 16));
-        previewHeader.setStyle("""
-            -fx-background-color: #34495e;
-            -fx-border-color: #2c3e50;
-            -fx-border-width: 0 0 1 0;
-            """);
-        previewHeader.setAlignment(Pos.CENTER_LEFT);
-
-        previewLabel = new Label("📄 Markdown Preview");
-        previewLabel.setStyle("-fx-text-fill: #ecf0f1; -fx-font-size: 13; -fx-font-weight: bold;");
-
-        Label previewHint = new Label("  — latest response");
-        previewHint.setStyle("-fx-text-fill: #95a5a6; -fx-font-size: 11;");
-
-        previewHeader.getChildren().addAll(previewLabel, previewHint);
-
-        // WebView for rendered Markdown
-        markdownView = new WebView();
-        markdownView.setContextMenuEnabled(true); // right-click → copy in WebView
-        VBox.setVgrow(markdownView, Priority.ALWAYS);
-
-        // Initial placeholder
-        loadPreviewHtml("<p style='color:#999; font-style:italic;'>Agent responses will be rendered here with full Markdown formatting.</p>");
-
-        panel.getChildren().addAll(previewHeader, markdownView);
-        return panel;
+        getChildren().addAll(header, writeModeInfo, quickActions, chatScroll, statusLabel, inputRow);
     }
 
     private Button quickAction(String label, String message) {
         Button btn = new Button(label);
-        btn.setStyle("""
-            -fx-background-color: white;
-            -fx-border-color: #ced4da;
-            -fx-border-radius: 14;
-            -fx-background-radius: 14;
-            -fx-font-size: 11;
-            -fx-padding: 5 12;
-            """);
+        btn.getStyleClass().add("panel-toolbar-btn");
         btn.setOnAction(e -> {
             inputField.setText(message);
             sendMessage();
         });
         return btn;
+    }
+
+    /** Applies theme-aware inline style to the write mode info bar */
+    private void applyWriteModeInfoStyle(boolean isOn) {
+        if (isOn) {
+            writeModeInfo.setStyle(ThemeManager.isDark()
+                ? "-fx-background-color: #2d2a1a; -fx-text-fill: #f6c347; -fx-font-size: 11;" +
+                  " -fx-padding: 6 16; -fx-border-color: #5a4e1a; -fx-border-width: 0 0 1 0;"
+                : "-fx-background-color: #fef9e7; -fx-text-fill: #7d6608; -fx-font-size: 11;" +
+                  " -fx-padding: 6 16; -fx-border-color: #f9e79f; -fx-border-width: 0 0 1 0;"
+            );
+        } else {
+            writeModeInfo.setStyle(ThemeManager.isDark()
+                ? "-fx-background-color: #12192e; -fx-text-fill: #63b3ed; -fx-font-size: 11;" +
+                  " -fx-padding: 6 16; -fx-border-color: #1e3a5f; -fx-border-width: 0 0 1 0;"
+                : "-fx-background-color: #eaf4fb; -fx-text-fill: #1a5276; -fx-font-size: 11;" +
+                  " -fx-padding: 6 16; -fx-border-color: #aed6f1; -fx-border-width: 0 0 1 0;"
+            );
+        }
+    }
+
+    private void updateWriteModeInfo(boolean isOn) {
+        writeModeInfo.setText(isOn
+            ? "  ✏  Write mode is ON — agent can create tasks and change task status." +
+              " Turn OFF to return to read-only mode."
+            : "  ✏  Write mode is OFF — agent can read tasks/logs but cannot modify them." +
+              " Toggle ON to let the agent create tasks or change status."
+        );
+        applyWriteModeInfoStyle(isOn);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // THEME RE-RENDER
+    // ════════════════════════════════════════════════════════════════
+
+    private void rerenderTheme() {
+        applyWriteModeInfoStyle(writeModeBtn.isSelected());
+        for (Map.Entry<WebView, String> entry : agentBubbles) {
+            entry.getKey().getEngine().loadContent(buildAgentHtml(entry.getValue()));
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -303,10 +229,9 @@ public class AgentPanel extends HBox {
         boolean actMode = writeModeBtn.isSelected();
 
         CompletableFuture.supplyAsync(() ->
-                agentService.ask(currentProject, message, actMode)
+            agentService.ask(currentProject, message, actMode)
         ).thenAcceptAsync(response -> {
             addAgentBubble(response);
-            updatePreview(response);
             setInputEnabled(true);
             statusLabel.setText("");
             scrollToBottom();
@@ -326,24 +251,16 @@ public class AgentPanel extends HBox {
     // ════════════════════════════════════════════════════════════════
 
     private void addUserBubble(String text) {
-        // User bubbles: styled TextArea so text is selectable
-        TextArea bubble = new TextArea(text);
-        bubble.setEditable(false);
+        Label bubble = new Label(text);
         bubble.setWrapText(true);
-        bubble.setPrefRowCount(1);
-        bubble.setMaxWidth(480);
-        bubble.setStyle("""
-            -fx-background-color: #3498db;
-            -fx-text-fill: white;
-            -fx-background-radius: 16 16 4 16;
-            -fx-border-color: transparent;
-            -fx-font-size: 13;
-            -fx-padding: 4;
-            -fx-control-inner-background: #3498db;
-            """);
-
-        // Auto-resize height to content
-        bubble.setPrefRowCount(Math.min(text.split("\n").length + 1, 8));
+        bubble.setMaxWidth(500);
+        bubble.setStyle(
+            "-fx-background-color: #2563eb;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 16 16 4 16;" +
+            "-fx-font-size: 13;" +
+            "-fx-padding: 10 14;"
+        );
 
         HBox wrapper = new HBox(bubble);
         wrapper.setAlignment(Pos.CENTER_RIGHT);
@@ -353,209 +270,134 @@ public class AgentPanel extends HBox {
     }
 
     private void addAgentBubble(String rawMarkdown) {
-        // ── Selectable text area ─────────────────────────────────────
-        TextArea bubble = new TextArea(rawMarkdown);
-        bubble.setEditable(false);
-        bubble.setWrapText(true);
-        bubble.setMaxWidth(520);
-        bubble.setPrefRowCount(Math.min(rawMarkdown.split("\n").length + 2, 20));
-        bubble.setStyle("""
-            -fx-background-color: white;
-            -fx-background-radius: 12;
-            -fx-border-color: #e9ecef;
-            -fx-border-radius: 12;
-            -fx-border-width: 1;
-            -fx-font-size: 13;
-            -fx-font-family: 'Segoe UI', Arial, sans-serif;
-            -fx-control-inner-background: white;
-            -fx-padding: 4;
-            """);
+        // Render markdown directly in a WebView for proper formatting
+        WebView webView = new WebView();
+        webView.setContextMenuEnabled(true);
+        webView.setMaxWidth(Double.MAX_VALUE);
+        webView.setPrefHeight(100); // initial; auto-sized below
+
+        webView.getEngine().loadContent(buildAgentHtml(rawMarkdown));
+
+        // Auto-size height once the document is rendered
+        webView.getEngine().documentProperty().addListener((obs, oldDoc, newDoc) -> {
+            if (newDoc != null) {
+                Platform.runLater(() -> {
+                    try {
+                        Object h = webView.getEngine().executeScript("document.body.scrollHeight");
+                        if (h instanceof Integer ih) {
+                            webView.setPrefHeight(ih + 20);
+                        }
+                    } catch (Exception ignored) {}
+                });
+            }
+        });
+
+        // Track for theme re-rendering on dark/light toggle
+        agentBubbles.add(new AbstractMap.SimpleEntry<>(webView, rawMarkdown));
 
         // ── Copy button ──────────────────────────────────────────────
         Button copyBtn = new Button("⎘ Copy");
-        copyBtn.setStyle("""
-            -fx-background-color: #ecf0f1;
-            -fx-text-fill: #555;
-            -fx-font-size: 10;
-            -fx-padding: 3 8;
-            -fx-background-radius: 8;
-            -fx-border-color: #dee2e6;
-            -fx-border-radius: 8;
-            """);
+        copyBtn.getStyleClass().add("panel-toolbar-btn");
         copyBtn.setOnAction(e -> {
             javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
             javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
             content.putString(rawMarkdown);
             clipboard.setContent(content);
 
-            // Visual feedback
             copyBtn.setText("✓ Copied!");
-            copyBtn.setStyle("""
-                -fx-background-color: #d5f5e3;
-                -fx-text-fill: #1e8449;
-                -fx-font-size: 10;
-                -fx-padding: 3 8;
-                -fx-background-radius: 8;
-                -fx-border-color: #a9dfbf;
-                -fx-border-radius: 8;
-                """);
+            copyBtn.setStyle(
+                "-fx-background-color: rgba(72,187,120,0.15); -fx-text-fill: #68d391;" +
+                "-fx-border-color: rgba(72,187,120,0.3); -fx-border-radius: 4;" +
+                "-fx-background-radius: 4; -fx-font-size: 11; -fx-padding: 4 10;"
+            );
 
-            // Reset after 2 seconds
-            new java.util.Timer().schedule(new java.util.TimerTask() {
-                public void run() {
-                    Platform.runLater(() -> {
-                        copyBtn.setText("⎘ Copy");
-                        copyBtn.setStyle("""
-                            -fx-background-color: #ecf0f1;
-                            -fx-text-fill: #555;
-                            -fx-font-size: 10;
-                            -fx-padding: 3 8;
-                            -fx-background-radius: 8;
-                            -fx-border-color: #dee2e6;
-                            -fx-border-radius: 8;
-                            """);
-                    });
-                }
-            }, 2000);
+            PauseTransition delay = new PauseTransition(Duration.seconds(2));
+            delay.setOnFinished(ev -> {
+                copyBtn.setText("⎘ Copy");
+                copyBtn.getStyleClass().setAll("panel-toolbar-btn");
+                copyBtn.setStyle("");
+            });
+            delay.play();
         });
 
-        // "View in Preview" button
-        Button previewBtn = new Button("⊞ Preview");
-        previewBtn.setStyle("""
-            -fx-background-color: #eaf4fb;
-            -fx-text-fill: #1a5276;
-            -fx-font-size: 10;
-            -fx-padding: 3 8;
-            -fx-background-radius: 8;
-            -fx-border-color: #aed6f1;
-            -fx-border-radius: 8;
-            """);
-        previewBtn.setOnAction(e -> updatePreview(rawMarkdown));
-
-        HBox btnRow = new HBox(6, copyBtn, previewBtn);
-        btnRow.setAlignment(Pos.CENTER_RIGHT);
+        HBox btnRow = new HBox(6, copyBtn);
+        btnRow.setAlignment(Pos.CENTER_LEFT);
+        btnRow.setPadding(new Insets(4, 0, 0, 0));
 
         Label icon = new Label("🤖");
-        icon.setStyle("-fx-font-size: 18; -fx-padding: 4 4 0 0;");
+        icon.setStyle("-fx-font-size: 18; -fx-padding: 4 6 0 0;");
 
-        VBox bubbleCol = new VBox(4, bubble, btnRow);
+        VBox bubbleCol = new VBox(2, webView, btnRow);
+        HBox.setHgrow(webView, Priority.ALWAYS);
 
         HBox wrapper = new HBox(8, icon, bubbleCol);
+        HBox.setHgrow(bubbleCol, Priority.ALWAYS);
         wrapper.setAlignment(Pos.TOP_LEFT);
-        wrapper.setPadding(new Insets(0, 60, 0, 0));
+        wrapper.setPadding(new Insets(0, 4, 0, 0));
 
         chatBox.getChildren().add(wrapper);
         scrollToBottom();
-
-        // Auto-update preview with the latest response
-        updatePreview(rawMarkdown);
     }
 
     // ════════════════════════════════════════════════════════════════
-    // MARKDOWN PREVIEW
+    // HTML BUILDER
     // ════════════════════════════════════════════════════════════════
 
-    /**
-     * Convert raw markdown to HTML and load it in the WebView.
-     *
-     * Uses commonmark (already in your gui/build.gradle) to render.
-     * Falls back to a simple regex-based renderer if commonmark isn't available.
-     */
-    private void updatePreview(String markdown) {
-        lastAgentResponse = markdown;
-        String html = renderMarkdown(markdown);
-        loadPreviewHtml(html);
-    }
-
-    private String renderMarkdown(String markdown) {
+    private String buildAgentHtml(String rawMarkdown) {
+        String bodyHtml;
         try {
-            // Use commonmark — already a dependency in gui/build.gradle
+            List<org.commonmark.Extension> extensions =
+                List.of(org.commonmark.ext.gfm.tables.TablesExtension.create());
             org.commonmark.parser.Parser parser =
-                    org.commonmark.parser.Parser.builder().build();
+                org.commonmark.parser.Parser.builder().extensions(extensions).build();
             org.commonmark.renderer.html.HtmlRenderer renderer =
-                    org.commonmark.renderer.html.HtmlRenderer.builder().build();
-            return renderer.render(parser.parse(markdown));
+                org.commonmark.renderer.html.HtmlRenderer.builder().extensions(extensions).build();
+            bodyHtml = renderer.render(parser.parse(rawMarkdown));
         } catch (Exception e) {
-            // Fallback: simple text with line breaks
-            return "<pre style='white-space:pre-wrap;'>" +
-                   markdown.replace("&", "&amp;").replace("<", "&lt;") +
-                   "</pre>";
+            bodyHtml = "<pre>" +
+                rawMarkdown.replace("&", "&amp;").replace("<", "&lt;") +
+                "</pre>";
         }
-    }
 
-    private void loadPreviewHtml(String bodyHtml) {
-        String fullHtml = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-            <meta charset="UTF-8">
-            <style>
-                body {
-                    font-family: 'Segoe UI', Arial, sans-serif;
-                    font-size: 14px;
-                    line-height: 1.7;
-                    color: #2c3e50;
-                    padding: 20px 24px;
-                    margin: 0;
-                    background: white;
-                }
-                h1 { font-size: 20px; color: #1a252f; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
-                h2 { font-size: 17px; color: #2c3e50; border-bottom: 1px solid #dee2e6; padding-bottom: 4px; margin-top: 20px; }
-                h3 { font-size: 15px; color: #34495e; margin-top: 14px; }
-                table {
-                    border-collapse: collapse;
-                    width: 100%%;
-                    margin: 14px 0;
-                    font-size: 13px;
-                }
-                th {
-                    background: #2c3e50;
-                    color: white;
-                    padding: 8px 12px;
-                    text-align: left;
-                }
-                td {
-                    padding: 7px 12px;
-                    border-bottom: 1px solid #ecf0f1;
-                }
-                tr:nth-child(even) td { background: #f8f9fa; }
-                code {
-                    background: #f4f6f7;
-                    padding: 2px 6px;
-                    border-radius: 4px;
-                    font-family: 'Consolas', monospace;
-                    font-size: 12px;
-                    color: #c0392b;
-                }
-                pre {
-                    background: #f4f6f7;
-                    padding: 14px;
-                    border-radius: 6px;
-                    overflow-x: auto;
-                    font-size: 12px;
-                    border-left: 3px solid #3498db;
-                }
-                blockquote {
-                    border-left: 4px solid #3498db;
-                    margin: 0;
-                    padding: 8px 16px;
-                    background: #eaf4fb;
-                    color: #1a5276;
-                }
-                ul, ol { padding-left: 22px; }
-                li { margin: 4px 0; }
-                strong { color: #1a252f; }
-                hr { border: none; border-top: 1px solid #dee2e6; margin: 16px 0; }
-                p { margin: 8px 0; }
-            </style>
-            </head>
-            <body>
-            %s
-            </body>
-            </html>
-            """.formatted(bodyHtml);
+        String bg     = ThemeManager.htmlSurface();
+        String text   = ThemeManager.htmlText();
+        String h1col  = ThemeManager.htmlHeading();
+        String border = ThemeManager.htmlBorder();
+        String muted  = ThemeManager.htmlMuted();
+        String code   = ThemeManager.htmlCode();
+        String codeT  = ThemeManager.htmlCodeText();
+        String link   = ThemeManager.htmlLink();
+        String quote  = ThemeManager.htmlQuote();
+        String quoteT = ThemeManager.htmlQuoteText();
+        String rowAlt = ThemeManager.htmlBg();
 
-        markdownView.getEngine().loadContent(fullHtml);
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>"
+            + "*{box-sizing:border-box;}"
+            + "body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;line-height:1.7;"
+            +   "color:" + text + ";margin:0;padding:10px 14px;background:" + bg + ";"
+            +   "border-radius:10px;-webkit-user-select:text;user-select:text;}"
+            + "h1{font-size:17px;color:" + h1col + ";border-bottom:1.5px solid #2563eb;"
+            +   "padding-bottom:5px;margin:0 0 12px;}"
+            + "h2{font-size:14px;color:" + text + ";border-bottom:1px solid " + border + ";"
+            +   "padding-bottom:3px;margin:14px 0 8px;}"
+            + "h3{font-size:13px;color:" + muted + ";margin:10px 0 5px;}"
+            + "ul,ol{padding-left:22px;margin:6px 0;} li{margin:3px 0;}"
+            + "code{background:" + code + ";padding:2px 6px;border-radius:3px;"
+            +   "font-family:'Consolas','Courier New',monospace;font-size:11px;color:" + codeT + ";}"
+            + "pre{background:" + code + ";color:" + text + ";padding:10px 14px;border-radius:6px;"
+            +   "font-size:11px;overflow-x:auto;border-left:2px solid #2563eb;}"
+            + "pre code{background:none;color:" + text + ";padding:0;}"
+            + "blockquote{border-left:3px solid #2563eb;margin:0;padding:6px 12px;"
+            +   "background:" + quote + ";color:" + quoteT + ";border-radius:0 4px 4px 0;}"
+            + "strong{color:" + h1col + ";}"
+            + "hr{border:none;border-top:1px solid " + border + ";margin:12px 0;}"
+            + "p{margin:5px 0;}"
+            + "a{color:" + link + ";text-decoration:none;} a:hover{text-decoration:underline;}"
+            + "table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12px;}"
+            + "th{background:#2563eb;color:white;padding:6px 10px;text-align:left;}"
+            + "td{padding:5px 10px;border-bottom:1px solid " + border + ";}"
+            + "tr:nth-child(even) td{background:" + rowAlt + ";}"
+            + "</style></head><body>" + bodyHtml + "</body></html>";
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -569,30 +411,5 @@ public class AgentPanel extends HBox {
 
     private void scrollToBottom() {
         Platform.runLater(() -> chatScroll.setVvalue(1.0));
-    }
-
-    private String offStyle() {
-        return """
-            -fx-background-color: #455a64;
-            -fx-text-fill: #b0bec5;
-            -fx-border-color: #607d8b;
-            -fx-border-radius: 6;
-            -fx-background-radius: 6;
-            -fx-font-size: 11;
-            -fx-padding: 5 12;
-            """;
-    }
-
-    private String onStyle() {
-        return """
-            -fx-background-color: #f39c12;
-            -fx-text-fill: white;
-            -fx-border-color: #e67e22;
-            -fx-border-radius: 6;
-            -fx-background-radius: 6;
-            -fx-font-size: 11;
-            -fx-font-weight: bold;
-            -fx-padding: 5 12;
-            """;
     }
 }

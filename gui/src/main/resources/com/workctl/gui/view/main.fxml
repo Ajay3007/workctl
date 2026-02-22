@@ -8,68 +8,62 @@
             fx:controller="com.workctl.gui.controller.MainController">
 
     <left>
-        <VBox spacing="8" prefWidth="220">
-            <padding>
-                <Insets top="12" right="10" bottom="10" left="10"/>
-            </padding>
+        <VBox styleClass="sidebar-root" prefWidth="228">
 
-            <!-- Header: label + count -->
-            <HBox alignment="CENTER_LEFT" spacing="6">
-                <Label text="Projects"
-                       style="-fx-font-size: 15; -fx-font-weight: bold;"/>
-                <Label fx:id="projectCountLabel"
-                       text=""
-                       style="-fx-text-fill: #888888; -fx-font-size: 11;"/>
+            <!-- ── Header: title + count + theme toggle ── -->
+            <HBox styleClass="sidebar-header" alignment="CENTER_LEFT" spacing="6">
+                <Label text="Projects" styleClass="sidebar-title"/>
+                <Label fx:id="projectCountLabel" text="" styleClass="sidebar-count"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="themeToggleBtn"
+                        text="&#9728;"
+                        styleClass="theme-toggle"
+                        onAction="#handleThemeToggle"/>
             </HBox>
 
-            <!-- Create Project button -->
-            <Button text="＋ New Project"
-                    onAction="#handleCreateProject"
-                    maxWidth="Infinity"
-                    style="
-                        -fx-background-color: #2ecc71;
-                        -fx-text-fill: white;
-                        -fx-font-weight: bold;
-                        -fx-font-size: 12;
-                        -fx-background-radius: 6;
-                        -fx-padding: 7 12 7 12;
-                        -fx-cursor: hand;
-                    "/>
+            <!-- ── New Project button ── -->
+            <VBox style="-fx-padding: 10 12 6 12;">
+                <Button text="+ New Project"
+                        onAction="#handleCreateProject"
+                        maxWidth="Infinity"
+                        styleClass="new-project-btn"/>
+            </VBox>
 
-            <!-- Project list -->
-            <ListView fx:id="projectListView"
-                      VBox.vgrow="ALWAYS"/>
+            <!-- ── Project card list ── -->
+            <ScrollPane fx:id="projectScroll"
+                        styleClass="project-scroll"
+                        VBox.vgrow="ALWAYS"
+                        fitToWidth="true"
+                        hbarPolicy="NEVER">
+                <VBox fx:id="projectListVBox"
+                      spacing="5"
+                      style="-fx-padding: 0 8 8 8;"/>
+            </ScrollPane>
 
-            <!-- Delete Project button -->
-            <Button fx:id="deleteProjectBtn"
-                    text="✕ Delete Project"
-                    onAction="#handleDeleteProject"
-                    maxWidth="Infinity"
-                    style="
-                        -fx-background-color: #e74c3c;
-                        -fx-text-fill: white;
-                        -fx-font-weight: bold;
-                        -fx-font-size: 12;
-                        -fx-background-radius: 6;
-                        -fx-padding: 7 12 7 12;
-                        -fx-cursor: hand;
-                    "/>
+            <!-- ── Delete button ── -->
+            <VBox style="-fx-padding: 6 12 12 12;">
+                <Button fx:id="deleteProjectBtn"
+                        text="Delete Project"
+                        onAction="#handleDeleteProject"
+                        maxWidth="Infinity"
+                        styleClass="delete-project-btn"/>
+            </VBox>
 
         </VBox>
     </left>
 
     <center>
-        <!-- AI Agent tab is added programmatically in MainController.initialize() -->
-        <TabPane fx:id="mainTabPane">
-            <Tab text="Tasks">
+        <!-- AI Agent + Weekly Report tabs are added programmatically in MainController.initialize() -->
+        <TabPane fx:id="mainTabPane" styleClass="main-tab-pane">
+            <Tab text="Tasks" closable="false">
                 <fx:include source="tasks.fxml" fx:id="tasksView"/>
             </Tab>
 
-            <Tab text="Logs">
+            <Tab text="Logs" closable="false">
                 <fx:include source="logs.fxml" fx:id="logsView"/>
             </Tab>
 
-            <Tab text="Stats">
+            <Tab text="Stats" closable="false">
                 <fx:include source="stats.fxml" fx:id="statsView"/>
             </Tab>
         </TabPane>

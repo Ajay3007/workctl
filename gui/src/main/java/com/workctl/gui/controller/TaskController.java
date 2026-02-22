@@ -13,6 +13,7 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 
@@ -369,55 +370,41 @@ public class TaskController {
         VBox card = new VBox();
         card.setSpacing(8);
         card.setPadding(new Insets(12));
-        card.setStyle("""
-        -fx-background-color: white;
-        -fx-background-radius: 10;
-        -fx-border-radius: 10;
-        -fx-border-width: 2;
-    """);
+
+        // CSS class handles background, radius, border-width.
+        // Inline style adds only the priority-based border-color (theme-independent).
+        card.getStyleClass().add("task-card");
 
         // =========================
-        // Priority Colors
+        // Priority border color
         // =========================
         String borderColor;
         String badgeColor;
 
         switch (task.getPriority()) {
-            case 1 -> {
-                borderColor = "#e53935";   // Red
-                badgeColor = "#e53935";
-            }
-            case 2 -> {
-                borderColor = "#fb8c00";   // Orange
-                badgeColor = "#fb8c00";
-            }
-            case 3 -> {
-                borderColor = "#43a047";   // Green
-                badgeColor = "#43a047";
-            }
-            default -> {
-                borderColor = "#cccccc";
-                badgeColor = "#999999";
-            }
+            case 1 -> { borderColor = "#e53935"; badgeColor = "#e53935"; }
+            case 2 -> { borderColor = "#fb8c00"; badgeColor = "#fb8c00"; }
+            case 3 -> { borderColor = "#43a047"; badgeColor = "#43a047"; }
+            default -> { borderColor = "#4a5568"; badgeColor = "#718096"; }
         }
 
-        card.setStyle(card.getStyle() + "-fx-border-color: " + borderColor + ";");
+        card.setStyle("-fx-border-color: " + borderColor + ";");
 
         // =========================
-        // ID + Priority Row (Stable)
+        // ID + Priority Badge
         // =========================
         Label idLabel = new Label("#" + task.getId());
-        idLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #555;");
+        idLabel.getStyleClass().add("task-id-label");
 
         Label priorityBadge = new Label("P" + task.getPriority());
         priorityBadge.setStyle("""
-        -fx-background-color: %s;
-        -fx-text-fill: white;
-        -fx-padding: 3 8 3 8;
-        -fx-background-radius: 14;
-        -fx-font-size: 11;
-        -fx-font-weight: bold;
-    """.formatted(badgeColor));
+            -fx-background-color: %s;
+            -fx-text-fill: white;
+            -fx-padding: 2 7 2 7;
+            -fx-background-radius: 12;
+            -fx-font-size: 10;
+            -fx-font-weight: bold;
+            """.formatted(badgeColor));
 
         HBox metaRow = new HBox(6, idLabel, priorityBadge);
         metaRow.setAlignment(Pos.CENTER_LEFT);
@@ -428,24 +415,15 @@ public class TaskController {
         Label titleLabel = new Label(task.getTitle());
         titleLabel.setWrapText(true);
         titleLabel.setMaxWidth(Double.MAX_VALUE);
-        titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13;");
+        titleLabel.getStyleClass().add("task-title-label");
 
         // =========================
         // Info Button
         // =========================
         Button infoBtn = new Button("i");
         infoBtn.setFocusTraversable(false);
-        infoBtn.setStyle("""
-        -fx-background-color: linear-gradient(to bottom, #42a5f5, #1e88e5);
-        -fx-text-fill: white;
-        -fx-font-weight: bold;
-        -fx-background-radius: 20;
-        -fx-min-width: 28;
-        -fx-min-height: 28;
-        -fx-max-width: 28;
-        -fx-max-height: 28;
-    """);
-
+        infoBtn.getStyleClass().add("task-info-btn");
+        infoBtn.setStyle("-fx-min-width: 26; -fx-min-height: 26; -fx-max-width: 26; -fx-max-height: 26;");
         infoBtn.setOnAction(e -> {
             e.consume();
             showTaskDetails(task);
@@ -458,27 +436,21 @@ public class TaskController {
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
         // =========================
-        // Add rows to card
+        // Subtask progress bar
         // =========================
         card.getChildren().addAll(metaRow, titleRow);
 
-        // =========================
-        // Subtask progress bar
-        // Shows only when the task has subtasks.
-        // =========================
         if (task.hasSubtasks()) {
             int done  = task.getDoneSubtaskCount();
             int total = task.getTotalSubtaskCount();
 
             ProgressBar pb = new ProgressBar((double) done / total);
             pb.setMaxWidth(Double.MAX_VALUE);
-            pb.setPrefHeight(6);
-            pb.setStyle(done == total
-                    ? "-fx-accent: #27ae60;"    // all done → green
-                    : "-fx-accent: #3498db;");  // partial  → blue
+            pb.setPrefHeight(5);
+            pb.setStyle(done == total ? "-fx-accent: #68d391;" : "-fx-accent: #63b3ed;");
 
-            Label subLabel = new Label(done + "/" + total + " subtasks");
-            subLabel.setStyle("-fx-text-fill: #777; -fx-font-size: 10;");
+            Label subLabel = new Label(done + "/" + total);
+            subLabel.getStyleClass().add("task-subtask-count");
 
             HBox subRow = new HBox(8, pb, subLabel);
             HBox.setHgrow(pb, Priority.ALWAYS);
@@ -486,21 +458,13 @@ public class TaskController {
             card.getChildren().add(subRow);
         }
 
-        // =========================
-        // Hover Effect — ORIGINAL UNCHANGED
-        // =========================
-        card.setOnMouseEntered(e ->
-                card.setStyle(card.getStyle() +
-                        "-fx-background-color: #f5f7fa;"));
-
-        card.setOnMouseExited(e ->
-                card.setStyle(card.getStyle()
-                        .replace("-fx-background-color: #f5f7fa;", "")));
+        // Hover is handled by .task-card:hover in CSS — no manual listeners needed.
 
         // =========================
         // Click Handling — ORIGINAL UNCHANGED
         // =========================
         card.setOnMouseClicked(e -> {
+            if (e.getButton() != MouseButton.PRIMARY) return;
             if (e.getClickCount() == 1) {
                 highlightCard(card);
             }
@@ -728,23 +692,8 @@ public class TaskController {
 
 
     private void highlightCard(VBox card) {
-
-        // Remove highlight from all cards
-        openColumn.getChildren().forEach(n ->
-                n.setStyle(n.getStyle().replace("-fx-border-color: #4a90e2;", "-fx-border-color: #dddddd;"))
-        );
-
-        inProgressColumn.getChildren().forEach(n ->
-                n.setStyle(n.getStyle().replace("-fx-border-color: #4a90e2;", "-fx-border-color: #dddddd;"))
-        );
-
-        doneColumn.getChildren().forEach(n ->
-                n.setStyle(n.getStyle().replace("-fx-border-color: #4a90e2;", "-fx-border-color: #dddddd;"))
-        );
-
-        // Highlight selected
-        card.setStyle(card.getStyle() +
-                "-fx-border-color: #4a90e2;");
+        // Simply refresh — the hover state handles visual feedback in dark theme
+        refreshBoard();
     }
 
     private void enableInlineEdit(VBox card, Task task, Label oldLabel) {

@@ -5,13 +5,17 @@ import com.workctl.config.ConfigManager;
 import com.workctl.core.domain.Project;
 import com.workctl.core.service.ProjectService;
 import com.workctl.gui.ProjectContext;
+import com.workctl.gui.ThemeManager;
 import com.workctl.gui.agent.AgentPanel;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Priority;
+import javafx.scene.layout.*;
 
 import java.nio.file.*;
 import java.util.List;
@@ -22,13 +26,17 @@ import java.util.concurrent.TimeUnit;
 
 public class MainController {
 
-    @FXML private ListView<String> projectListView;
+    @FXML private VBox    projectListVBox;
     @FXML private TabPane mainTabPane;
-    @FXML private Label projectCountLabel;
-    @FXML private Button deleteProjectBtn;
+    @FXML private Label   projectCountLabel;
+    @FXML private Button  deleteProjectBtn;
+    @FXML private Button  themeToggleBtn;
 
     private final ProjectService projectService = new ProjectService();
     private AgentPanel agentPanel;
+
+    /** Currently selected project name (null = none). */
+    private String selectedProject;
 
     private ScheduledExecutorService workspaceWatcher;
     private WatchService watchService;
@@ -37,31 +45,27 @@ public class MainController {
     @FXML
     public void initialize() {
         try {
-            // ── AI Agent tab (added in code, not FXML) ────────────
+            // ── Weekly Report tab ─────────────────────────────────
+            FXMLLoader reportLoader = new FXMLLoader(getClass().getResource(
+                    "/com/workctl/gui/view/weekly-report.fxml"));
+            Parent reportView = reportLoader.load();
+            Tab reportTab = new Tab("Weekly Report", reportView);
+            reportTab.setClosable(false);
+            mainTabPane.getTabs().add(reportTab);
+
+            // ── AI Agent tab ──────────────────────────────────────
             agentPanel = new AgentPanel(null);
-            Tab agentTab = new Tab("🤖 AI Agent", agentPanel);
+            Tab agentTab = new Tab("AI Agent", agentPanel);
             agentTab.setClosable(false);
             mainTabPane.getTabs().add(agentTab);
 
             // ── Load projects ─────────────────────────────────────
             loadProjects();
 
-            // ── Project selection listener ────────────────────────
-            projectListView.getSelectionModel()
-                    .selectedItemProperty()
-                    .addListener((obs, oldVal, newVal) -> {
-                        if (newVal != null) {
-                            ProjectContext.setCurrentProject(newVal);
-                            agentPanel.setProject(newVal);
-                        }
-                    });
+            // ── Delete button: disabled until a card is selected ──
+            deleteProjectBtn.setDisable(true);
 
-            // ── Disable Delete button when nothing is selected ────
-            deleteProjectBtn.disableProperty().bind(
-                projectListView.getSelectionModel().selectedItemProperty().isNull()
-            );
-
-            // ── Watch workspace for CLI-created projects ──────────
+            // ── Workspace watcher ─────────────────────────────────
             startWorkspaceWatcher();
 
         } catch (Exception e) {
@@ -70,7 +74,23 @@ public class MainController {
     }
 
     // ════════════════════════════════════════════════════════════════
-    // LOAD PROJECTS
+    // THEME TOGGLE
+    // ════════════════════════════════════════════════════════════════
+
+    @FXML
+    public void handleThemeToggle() {
+        ThemeManager.toggle();           // changes state, notifies HTML-panel listeners
+        // Switch scene stylesheet
+        var stylesheets = themeToggleBtn.getScene().getStylesheets();
+        stylesheets.setAll(
+                getClass().getResource(ThemeManager.cssPath()).toExternalForm());
+        // Update button icon
+        themeToggleBtn.setText(ThemeManager.toggleIcon());
+        // CSS classes on project cards auto-update — no rebuild needed
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // LOAD PROJECTS — build card list
     // ════════════════════════════════════════════════════════════════
 
     private void loadProjects() {
@@ -79,19 +99,25 @@ public class MainController {
             Path workspace   = Paths.get(config.getWorkspace());
             List<Project> projects = projectService.listProjects(workspace);
 
-            // Remember current selection so we can restore after refresh
-            String selected = projectListView.getSelectionModel().getSelectedItem();
+            Platform.runLater(() -> {
+                projectListVBox.getChildren().clear();
 
-            projectListView.getItems().setAll(
-                    projects.stream().map(Project::getName).toList()
-            );
+                for (Project p : projects) {
+                    projectListVBox.getChildren().add(createProjectCard(p.getName()));
+                }
 
-            updateCountLabel(projects.size());
+                updateCountLabel(projects.size());
 
-            // Restore selection if project still exists
-            if (selected != null && projectListView.getItems().contains(selected)) {
-                projectListView.getSelectionModel().select(selected);
-            }
+                // Restore selection if project still exists
+                boolean stillExists = projects.stream()
+                        .anyMatch(p -> p.getName().equals(selectedProject));
+                if (selectedProject != null && stillExists) {
+                    highlightCard(selectedProject);
+                } else {
+                    selectedProject = null;
+                    deleteProjectBtn.setDisable(true);
+                }
+            });
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -101,6 +127,54 @@ public class MainController {
     private void updateCountLabel(int count) {
         if (projectCountLabel != null) {
             projectCountLabel.setText(count + " project" + (count == 1 ? "" : "s"));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PROJECT CARD
+    // ════════════════════════════════════════════════════════════════
+
+    private Node createProjectCard(String name) {
+        HBox card = new HBox(9);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setUserData(name);           // used for selection lookup
+        card.getStyleClass().add("project-card");
+
+        Label icon = new Label("\uD83D\uDCC1");   // 📁 folder emoji
+        icon.getStyleClass().add("project-card-icon");
+
+        Label nameLabel = new Label(name);
+        nameLabel.getStyleClass().add("project-card-name");
+        nameLabel.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(nameLabel, Priority.ALWAYS);
+
+        card.getChildren().addAll(icon, nameLabel);
+
+        // Click to select
+        card.setOnMouseClicked(e -> selectProject(name));
+
+        return card;
+    }
+
+    private void selectProject(String name) {
+        selectedProject = name;
+        deleteProjectBtn.setDisable(false);
+        highlightCard(name);
+        ProjectContext.setCurrentProject(name);
+        if (agentPanel != null) agentPanel.setProject(name);
+    }
+
+    /**
+     * Apply selection highlight to the named card and clear all others.
+     * CSS classes handle the visual difference — no inline styles needed.
+     */
+    private void highlightCard(String name) {
+        for (Node node : projectListVBox.getChildren()) {
+            if (node instanceof HBox card && card.getUserData() instanceof String cardName) {
+                card.getStyleClass().removeAll("project-card", "project-card-selected");
+                card.getStyleClass().add(
+                        cardName.equals(name) ? "project-card-selected" : "project-card");
+            }
         }
     }
 
@@ -149,7 +223,6 @@ public class MainController {
         dialog.getDialogPane().setContent(grid);
         dialog.getDialogPane().setPrefWidth(460);
 
-        // Disable Create until name is typed
         Button okButton = (Button) dialog.getDialogPane().lookupButton(createBtn);
         okButton.setDisable(true);
         nameField.textProperty().addListener((obs, o, n) -> {
@@ -171,7 +244,9 @@ public class MainController {
                 return;
             }
 
-            if (projectListView.getItems().contains(name)) {
+            boolean alreadyExists = projectListVBox.getChildren().stream()
+                    .anyMatch(n -> name.equals(n.getUserData()));
+            if (alreadyExists) {
                 showError("Already exists",
                         "A project named \"" + name + "\" already exists.");
                 return;
@@ -190,10 +265,10 @@ public class MainController {
 
             loadProjects();
 
-            // Auto-select and notify all tabs + agent panel
-            projectListView.getSelectionModel().select(name);
-            ProjectContext.setCurrentProject(name);
-            agentPanel.setProject(name);
+            // Auto-select after the Platform.runLater in loadProjects finishes
+            Platform.runLater(() -> {
+                selectProject(name);
+            });
 
         } catch (IllegalStateException e) {
             showError("Already exists", e.getMessage());
@@ -209,16 +284,14 @@ public class MainController {
 
     @FXML
     public void handleDeleteProject() {
-        String selected = projectListView.getSelectionModel().getSelectedItem();
-        if (selected == null) {
+        if (selectedProject == null) {
             showError("No project selected", "Please select a project to delete.");
             return;
         }
 
-        // Step 1: Warning confirmation
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Delete Project");
-        confirm.setHeaderText("Delete \"" + selected + "\"?");
+        confirm.setHeaderText("Delete \"" + selectedProject + "\"?");
         confirm.setContentText(
             "This will permanently delete the project and ALL its data\n" +
             "(tasks, logs, notes, docs).\n\nThis action cannot be undone."
@@ -228,14 +301,13 @@ public class MainController {
         Optional<ButtonType> result = confirm.showAndWait();
         if (result.isEmpty() || result.get() != ButtonType.OK) return;
 
-        // Step 2: Type-to-confirm
         TextInputDialog typeConfirm = new TextInputDialog();
         typeConfirm.setTitle("Confirm Deletion");
         typeConfirm.setHeaderText("Type the project name to confirm:");
         typeConfirm.setContentText("Project name:");
 
         Optional<String> typed = typeConfirm.showAndWait();
-        if (typed.isEmpty() || !typed.get().trim().equals(selected)) {
+        if (typed.isEmpty() || !typed.get().trim().equals(selectedProject)) {
             showError("Deletion cancelled", "Project name did not match. Nothing was deleted.");
             return;
         }
@@ -243,20 +315,21 @@ public class MainController {
         try {
             AppConfig config = ConfigManager.load();
             Path workspace = Paths.get(config.getWorkspace());
-            projectService.deleteProject(workspace, selected);
+            projectService.deleteProject(workspace, selectedProject);
 
-            loadProjects();
-
-            if (selected.equals(ProjectContext.getCurrentProject())) {
+            if (selectedProject.equals(ProjectContext.getCurrentProject())) {
                 ProjectContext.setCurrentProject(null);
             }
+            selectedProject = null;
+            loadProjects();
+
         } catch (Exception e) {
             showError("Failed to delete project", e.getMessage());
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    // WORKSPACE WATCHER — auto-refresh when CLI creates/deletes project
+    // WORKSPACE WATCHER
     // ════════════════════════════════════════════════════════════════
 
     private void startWorkspaceWatcher() {
@@ -298,7 +371,6 @@ public class MainController {
             if (changed) lastProjectEventMs = System.currentTimeMillis();
         }
 
-        // 1.5s debounce — let CLI finish writing all project files before reading
         if (lastProjectEventMs > 0
                 && System.currentTimeMillis() - lastProjectEventMs > 1500) {
             lastProjectEventMs = 0;

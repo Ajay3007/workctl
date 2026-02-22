@@ -19,6 +19,7 @@ dependencies {
     implementation project(':agent')
     implementation 'org.commonmark:commonmark:0.21.0'
     implementation 'org.commonmark:commonmark-ext-gfm-tables:0.21.0'
+    implementation 'org.apache.pdfbox:pdfbox:2.0.30'
 }
 
 application {

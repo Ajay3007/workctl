@@ -109,6 +109,12 @@ public class ProjectCommand implements Runnable {
     )
     public static class ListCommand implements Runnable {
 
+        @CommandLine.Option(
+                names = {"--plain"},
+                description = "Output plain project names (one per line), suitable for scripting"
+        )
+        private boolean plain;
+
         private final ProjectService projectService = new ProjectService();
 
         @Override
@@ -119,13 +125,17 @@ public class ProjectCommand implements Runnable {
 
                 List<Project> projects = projectService.listProjects(workspace);
 
+                if (plain) {
+                    projects.forEach(p -> System.out.println(p.getName()));
+                    return;
+                }
+
                 if (projects.isEmpty()) {
                     ConsolePrinter.info("No projects found.");
                     return;
                 }
 
                 ConsolePrinter.header("Projects");
-
                 projects.forEach(p ->
                         System.out.println("  \u001B[36m▸\u001B[0m " + p.getName())
                 );

@@ -1,0 +1,273 @@
+/* ═══════════════════════════════════════════════════════════════
+   workctl — Dark Theme
+   Applied to Scene. Use style classes to opt into theming.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Root ─────────────────────────────────────────────────────── */
+.root {
+    -fx-base:             #1a1d2e;
+    -fx-background:       #0d0f17;
+    -fx-control-inner-background: #1a1d2e;
+    -fx-text-fill:        #e2e8f0;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────── */
+.sidebar-root {
+    -fx-background-color: #0d0f17;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     0 1 0 0;
+}
+.sidebar-header {
+    -fx-padding:          14 14 10 14;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     0 0 1 0;
+}
+.sidebar-title {
+    -fx-text-fill:        #f7fafc;
+    -fx-font-size:        13;
+    -fx-font-weight:      bold;
+}
+.sidebar-count {
+    -fx-text-fill:        #4a5568;
+    -fx-font-size:        11;
+}
+.theme-toggle {
+    -fx-background-color: transparent;
+    -fx-text-fill:        #718096;
+    -fx-font-size:        14;
+    -fx-padding:          2 5;
+    -fx-cursor:           hand;
+    -fx-background-radius: 4;
+}
+.theme-toggle:hover {
+    -fx-background-color: #2d3748;
+    -fx-text-fill:        #e2e8f0;
+}
+.new-project-btn {
+    -fx-background-color: #1d4ed8;
+    -fx-text-fill:        white;
+    -fx-font-weight:      bold;
+    -fx-font-size:        12;
+    -fx-background-radius: 6;
+    -fx-cursor:           hand;
+    -fx-padding:          7 12;
+}
+.new-project-btn:hover { -fx-background-color: #2563eb; }
+.delete-project-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill:        #fc8181;
+    -fx-font-size:        11;
+    -fx-border-color:     rgba(239, 68, 68, 0.3);
+    -fx-border-radius:    6;
+    -fx-background-radius: 6;
+    -fx-padding:          6 12;
+    -fx-cursor:           hand;
+}
+.delete-project-btn:hover { -fx-background-color: rgba(239, 68, 68, 0.1); }
+.delete-project-btn:disabled { -fx-opacity: 0.35; }
+
+/* Project list scroll area */
+.project-scroll {
+    -fx-background:       transparent;
+    -fx-background-color: transparent;
+    -fx-border-color:     transparent;
+    -fx-padding:          0;
+}
+.project-scroll .viewport { -fx-background-color: transparent; }
+.project-scroll .scroll-bar { -fx-background-color: transparent; }
+.project-scroll .scroll-bar .thumb { -fx-background-color: #2d3748; -fx-background-radius: 4; }
+
+/* Project cards */
+.project-card {
+    -fx-background-color: #12141f;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     1;
+    -fx-border-radius:    7;
+    -fx-background-radius: 7;
+    -fx-cursor:           hand;
+    -fx-padding:          10 12 10 12;
+}
+.project-card:hover {
+    -fx-background-color: #1a1d2e;
+    -fx-border-color:     #3d4d5e;
+}
+.project-card-selected {
+    -fx-background-color: #172038;
+    -fx-border-color:     #2563eb;
+    -fx-border-width:     1.5;
+    -fx-border-radius:    7;
+    -fx-background-radius: 7;
+    -fx-cursor:           hand;
+    -fx-padding:          10 12 10 12;
+}
+.project-card-name {
+    -fx-text-fill:        #d1d5db;
+    -fx-font-size:        12;
+}
+.project-card-selected .project-card-name {
+    -fx-text-fill:        #f7fafc;
+    -fx-font-weight:      bold;
+}
+.project-card-icon {
+    -fx-text-fill:        #4a5568;
+    -fx-font-size:        12;
+}
+.project-card-selected .project-card-icon {
+    -fx-text-fill:        #63b3ed;
+}
+
+/* ── TabPane ──────────────────────────────────────────────────── */
+.main-tab-pane {
+    -fx-background-color: #0d0f17;
+    -fx-tab-min-height:   32;
+}
+.main-tab-pane > .tab-header-area {
+    -fx-background-color: #12141f;
+    -fx-padding:          2 0 0 2;
+}
+.main-tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: #12141f;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-padding:          5 18;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: #0d0f17;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill:        #718096;
+    -fx-font-size:        12;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill:        #f7fafc;
+    -fx-font-weight:      bold;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab:hover .tab-label {
+    -fx-text-fill:        #a0aec0;
+}
+
+/* ── Kanban board ─────────────────────────────────────────────── */
+.kanban-root { -fx-background-color: #0d0f17; }
+.kanban-toolbar {
+    -fx-background-color: #1a1d2e;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     0 0 1 0;
+}
+.kanban-board { -fx-background-color: #0d0f17; }
+.kanban-column {
+    -fx-background-color: #12141f;
+    -fx-border-color:     #2d3748;
+    -fx-border-radius:    10;
+    -fx-background-radius: 10;
+}
+.kanban-col-header {
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     0 0 1 0;
+}
+.kanban-col-title {
+    -fx-text-fill:        #f7fafc;
+    -fx-font-weight:      bold;
+    -fx-font-size:        13;
+}
+.kanban-col-scroll {
+    -fx-background:       transparent;
+    -fx-background-color: transparent;
+    -fx-border-color:     transparent;
+}
+.kanban-col-scroll .viewport { -fx-background-color: transparent; }
+.kanban-col-scroll .scroll-bar .thumb { -fx-background-color: #2d3748; -fx-background-radius: 4; }
+
+/* Task cards */
+.task-card {
+    -fx-background-color: #1a1d2e;
+    -fx-background-radius: 8;
+    -fx-border-radius:    8;
+    -fx-border-width:     1.5;
+}
+.task-card:hover { -fx-background-color: #212540; }
+.task-id-label  { -fx-text-fill: #718096; -fx-font-size: 11; -fx-font-weight: bold; }
+.task-title-label { -fx-text-fill: #e2e8f0; -fx-font-weight: bold; -fx-font-size: 13; }
+.task-subtask-count { -fx-text-fill: #4a5568; -fx-font-size: 10; }
+.task-info-btn {
+    -fx-background-color: #2d3748;
+    -fx-text-fill:        #63b3ed;
+    -fx-font-weight:      bold;
+    -fx-background-radius: 20;
+    -fx-border-color:     #4a5568;
+    -fx-border-radius:    20;
+    -fx-border-width:     1;
+    -fx-cursor:           hand;
+}
+.task-info-btn:hover { -fx-background-color: #3d4d5e; }
+
+/* Kanban toolbar widgets */
+.add-task-btn {
+    -fx-background-color: #2563eb;
+    -fx-text-fill:        white;
+    -fx-font-weight:      bold;
+    -fx-background-radius: 6;
+    -fx-cursor:           hand;
+    -fx-padding:          6 14;
+}
+.add-task-btn:hover { -fx-background-color: #1d4ed8; }
+.search-field {
+    -fx-background-color: #2d3748;
+    -fx-text-fill:        #e2e8f0;
+    -fx-prompt-text-fill: #718096;
+    -fx-background-radius: 16;
+    -fx-border-color:     #4a5568;
+    -fx-border-radius:    16;
+    -fx-padding:          5 12;
+}
+.search-icon   { -fx-text-fill: #718096; -fx-font-size: 13; }
+.clear-search-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill:        #718096;
+    -fx-font-size:        12;
+    -fx-cursor:           hand;
+    -fx-padding:          4 8;
+}
+
+/* Toolbar buttons (Logs, Stats panels) */
+.panel-toolbar {
+    -fx-background-color: #1a1d2e;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     0 0 1 0;
+}
+.panel-toolbar-title { -fx-text-fill: #f7fafc; -fx-font-size: 13; -fx-font-weight: bold; }
+.panel-toolbar-btn {
+    -fx-background-color: #2d3748;
+    -fx-text-fill:        #a0aec0;
+    -fx-border-color:     #4a5568;
+    -fx-border-radius:    4;
+    -fx-background-radius: 4;
+    -fx-font-size:        11;
+    -fx-padding:          4 10;
+    -fx-cursor:           hand;
+}
+.panel-toolbar-btn:hover { -fx-background-color: #3d4d5e; }
+.panel-toolbar-btn-active {
+    -fx-background-color: #3182ce;
+    -fx-text-fill:        white;
+    -fx-border-radius:    4;
+    -fx-background-radius: 4;
+    -fx-font-size:        11;
+    -fx-padding:          4 10;
+    -fx-cursor:           hand;
+}
+.panel-status { -fx-text-fill: #718096; -fx-font-size: 11; }
+.panel-refresh { -fx-text-fill: #4a5568; -fx-font-size: 10; }
+
+/* Weekly Report toolbar */
+.report-toolbar {
+    -fx-background-color: #1a1d2e;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     0 0 1 0;
+}
+.report-toolbar .label { -fx-text-fill: #e2e8f0; }
+.report-toolbar .date-picker > .text-field {
+    -fx-background-color: #2d3748;
+    -fx-text-fill:        #e2e8f0;
+}
+.report-toolbar .date-picker .arrow-button { -fx-background-color: #2d3748; }

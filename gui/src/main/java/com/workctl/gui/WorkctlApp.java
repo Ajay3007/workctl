@@ -15,6 +15,9 @@ public class WorkctlApp extends Application {
         );
 
         Scene scene = new Scene(loader.load(), 1200, 800);
+        scene.getStylesheets().add(
+                WorkctlApp.class.getResource(
+                        com.workctl.gui.ThemeManager.cssPath()).toExternalForm());
 
         stage.setTitle("workctl");
         stage.setScene(scene);

@@ -1,0 +1,267 @@
+/* ═══════════════════════════════════════════════════════════════
+   workctl — Light Theme
+   Applied to Scene. Same style classes as dark.css, light colors.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Root ─────────────────────────────────────────────────────── */
+.root {
+    -fx-base:             #e2e8f0;
+    -fx-background:       #f1f5f9;
+    -fx-control-inner-background: #ffffff;
+    -fx-text-fill:        #1e293b;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────── */
+.sidebar-root {
+    -fx-background-color: #ffffff;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-width:     0 1 0 0;
+}
+.sidebar-header {
+    -fx-padding:          14 14 10 14;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-width:     0 0 1 0;
+}
+.sidebar-title {
+    -fx-text-fill:        #0f172a;
+    -fx-font-size:        13;
+    -fx-font-weight:      bold;
+}
+.sidebar-count {
+    -fx-text-fill:        #94a3b8;
+    -fx-font-size:        11;
+}
+.theme-toggle {
+    -fx-background-color: transparent;
+    -fx-text-fill:        #94a3b8;
+    -fx-font-size:        14;
+    -fx-padding:          2 5;
+    -fx-cursor:           hand;
+    -fx-background-radius: 4;
+}
+.theme-toggle:hover {
+    -fx-background-color: #e2e8f0;
+    -fx-text-fill:        #475569;
+}
+.new-project-btn {
+    -fx-background-color: #2563eb;
+    -fx-text-fill:        white;
+    -fx-font-weight:      bold;
+    -fx-font-size:        12;
+    -fx-background-radius: 6;
+    -fx-cursor:           hand;
+    -fx-padding:          7 12;
+}
+.new-project-btn:hover { -fx-background-color: #1d4ed8; }
+.delete-project-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill:        #ef4444;
+    -fx-font-size:        11;
+    -fx-border-color:     rgba(239, 68, 68, 0.3);
+    -fx-border-radius:    6;
+    -fx-background-radius: 6;
+    -fx-padding:          6 12;
+    -fx-cursor:           hand;
+}
+.delete-project-btn:hover { -fx-background-color: rgba(239, 68, 68, 0.07); }
+.delete-project-btn:disabled { -fx-opacity: 0.35; }
+
+.project-scroll {
+    -fx-background:       transparent;
+    -fx-background-color: transparent;
+    -fx-border-color:     transparent;
+    -fx-padding:          0;
+}
+.project-scroll .viewport { -fx-background-color: transparent; }
+.project-scroll .scroll-bar { -fx-background-color: transparent; }
+.project-scroll .scroll-bar .thumb { -fx-background-color: #cbd5e1; -fx-background-radius: 4; }
+
+.project-card {
+    -fx-background-color: #f8fafc;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-width:     1;
+    -fx-border-radius:    7;
+    -fx-background-radius: 7;
+    -fx-cursor:           hand;
+    -fx-padding:          10 12 10 12;
+}
+.project-card:hover {
+    -fx-background-color: #f1f5f9;
+    -fx-border-color:     #cbd5e1;
+}
+.project-card-selected {
+    -fx-background-color: #eff6ff;
+    -fx-border-color:     #2563eb;
+    -fx-border-width:     1.5;
+    -fx-border-radius:    7;
+    -fx-background-radius: 7;
+    -fx-cursor:           hand;
+    -fx-padding:          10 12 10 12;
+}
+.project-card-name {
+    -fx-text-fill:        #374151;
+    -fx-font-size:        12;
+}
+.project-card-selected .project-card-name {
+    -fx-text-fill:        #1e40af;
+    -fx-font-weight:      bold;
+}
+.project-card-icon {
+    -fx-text-fill:        #9ca3af;
+    -fx-font-size:        12;
+}
+.project-card-selected .project-card-icon {
+    -fx-text-fill:        #2563eb;
+}
+
+/* ── TabPane ──────────────────────────────────────────────────── */
+.main-tab-pane {
+    -fx-background-color: #f1f5f9;
+    -fx-tab-min-height:   32;
+}
+.main-tab-pane > .tab-header-area {
+    -fx-background-color: #ffffff;
+    -fx-padding:          2 0 0 2;
+}
+.main-tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: #ffffff;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-padding:          5 18;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: #f1f5f9;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill:        #94a3b8;
+    -fx-font-size:        12;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill:        #0f172a;
+    -fx-font-weight:      bold;
+}
+.main-tab-pane > .tab-header-area > .headers-region > .tab:hover .tab-label {
+    -fx-text-fill:        #475569;
+}
+
+/* ── Kanban board ─────────────────────────────────────────────── */
+.kanban-root { -fx-background-color: #f1f5f9; }
+.kanban-toolbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-width:     0 0 1 0;
+}
+.kanban-board { -fx-background-color: #f1f5f9; }
+.kanban-column {
+    -fx-background-color: #ffffff;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-radius:    10;
+    -fx-background-radius: 10;
+}
+.kanban-col-header {
+    -fx-border-color:     #e2e8f0;
+    -fx-border-width:     0 0 1 0;
+}
+.kanban-col-title {
+    -fx-text-fill:        #0f172a;
+    -fx-font-weight:      bold;
+    -fx-font-size:        13;
+}
+.kanban-col-scroll {
+    -fx-background:       transparent;
+    -fx-background-color: transparent;
+    -fx-border-color:     transparent;
+}
+.kanban-col-scroll .viewport { -fx-background-color: transparent; }
+.kanban-col-scroll .scroll-bar .thumb { -fx-background-color: #cbd5e1; -fx-background-radius: 4; }
+
+.task-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8;
+    -fx-border-radius:    8;
+    -fx-border-width:     1.5;
+}
+.task-card:hover { -fx-background-color: #f8fafc; }
+.task-id-label  { -fx-text-fill: #94a3b8; -fx-font-size: 11; -fx-font-weight: bold; }
+.task-title-label { -fx-text-fill: #1e293b; -fx-font-weight: bold; -fx-font-size: 13; }
+.task-subtask-count { -fx-text-fill: #94a3b8; -fx-font-size: 10; }
+.task-info-btn {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill:        #2563eb;
+    -fx-font-weight:      bold;
+    -fx-background-radius: 20;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-radius:    20;
+    -fx-border-width:     1;
+    -fx-cursor:           hand;
+}
+.task-info-btn:hover { -fx-background-color: #e0e7ff; }
+
+.add-task-btn {
+    -fx-background-color: #2563eb;
+    -fx-text-fill:        white;
+    -fx-font-weight:      bold;
+    -fx-background-radius: 6;
+    -fx-cursor:           hand;
+    -fx-padding:          6 14;
+}
+.add-task-btn:hover { -fx-background-color: #1d4ed8; }
+.search-field {
+    -fx-background-color: #f8fafc;
+    -fx-text-fill:        #1e293b;
+    -fx-prompt-text-fill: #94a3b8;
+    -fx-background-radius: 16;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-radius:    16;
+    -fx-padding:          5 12;
+}
+.search-icon   { -fx-text-fill: #94a3b8; -fx-font-size: 13; }
+.clear-search-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill:        #94a3b8;
+    -fx-font-size:        12;
+    -fx-cursor:           hand;
+    -fx-padding:          4 8;
+}
+
+.panel-toolbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-width:     0 0 1 0;
+}
+.panel-toolbar-title { -fx-text-fill: #0f172a; -fx-font-size: 13; -fx-font-weight: bold; }
+.panel-toolbar-btn {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill:        #64748b;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-radius:    4;
+    -fx-background-radius: 4;
+    -fx-font-size:        11;
+    -fx-padding:          4 10;
+    -fx-cursor:           hand;
+}
+.panel-toolbar-btn:hover { -fx-background-color: #e2e8f0; }
+.panel-toolbar-btn-active {
+    -fx-background-color: #2563eb;
+    -fx-text-fill:        white;
+    -fx-border-radius:    4;
+    -fx-background-radius: 4;
+    -fx-font-size:        11;
+    -fx-padding:          4 10;
+    -fx-cursor:           hand;
+}
+.panel-status { -fx-text-fill: #94a3b8; -fx-font-size: 11; }
+.panel-refresh { -fx-text-fill: #cbd5e1; -fx-font-size: 10; }
+
+.report-toolbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color:     #e2e8f0;
+    -fx-border-width:     0 0 1 0;
+}
+.report-toolbar .label { -fx-text-fill: #1e293b; }
+.report-toolbar .date-picker > .text-field {
+    -fx-background-color: #f8fafc;
+    -fx-text-fill:        #1e293b;
+}
+.report-toolbar .date-picker .arrow-button { -fx-background-color: #f1f5f9; }

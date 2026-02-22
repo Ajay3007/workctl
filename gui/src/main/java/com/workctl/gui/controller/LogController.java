@@ -3,6 +3,7 @@ package com.workctl.gui.controller;
 import com.workctl.config.AppConfig;
 import com.workctl.config.ConfigManager;
 import com.workctl.gui.ProjectContext;
+import com.workctl.gui.ThemeManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -18,37 +19,28 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * LogController — Logs tab
+ * LogController — Logs tab (dark HTML preview with Raw toggle)
  *
- * Features:
- *   - Split pane: raw Markdown text on left, rendered HTML preview on right
- *   - Auto-refresh via ProjectContext.WatchService — updates when work-log.md
- *     changes on disk (CLI commands, AI agent writes, manual edits)
- *   - Manual refresh button
- *   - Last-refreshed timestamp
+ * Renders work-log.md as a dark-themed HTML preview.
+ * A toolbar "Raw" toggle switches to the raw Markdown text.
  */
 public class LogController {
 
-    // ── FXML — the Logs tab root must be a container (AnchorPane or VBox)
-    // that we populate entirely in code so we can add the split pane + toolbar
-    @FXML
-    private VBox logRoot;   // fx:id="logRoot" — replace logTextArea with this VBox in FXML
+    @FXML private VBox logRoot;
 
-    // ── Internal nodes (built in code) ───────────────────────────
-    private TextArea  rawTextArea;
     private WebView   markdownView;
     private Label     statusLabel;
     private Label     lastRefreshLabel;
+    private Button    rawToggleBtn;
 
-    // ── State ─────────────────────────────────────────────────────
-    private String currentProject;
-    private String currentRawContent = "";
+    private String  currentProject;
+    private String  currentRawContent = "";
+    private boolean showingRaw        = false;
 
     @FXML
     public void initialize() {
         buildUI();
 
-        // 1. Refresh when user switches project
         ProjectContext.addListener(project -> {
             currentProject = project;
             if (project == null) return;
@@ -56,12 +48,12 @@ public class LogController {
             loadLog(project);
         });
 
-        // 2. Refresh when tasks.md or work-log.md changes on disk
         ProjectContext.addFileChangeListener(() -> {
-            if (currentProject != null) {
-                loadLog(currentProject);
-            }
+            if (currentProject != null) loadLog(currentProject);
         });
+
+        // Re-render HTML when theme switches
+        ThemeManager.addListener(() -> Platform.runLater(this::rerender));
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -71,88 +63,62 @@ public class LogController {
     private void buildUI() {
         logRoot.setSpacing(0);
 
-        // ── Toolbar ───────────────────────────────────────────────
+        // ── Toolbar (CSS class handles all theme-sensitive colors) ─
         HBox toolbar = new HBox(10);
         toolbar.setPadding(new Insets(8, 14, 8, 14));
         toolbar.setAlignment(Pos.CENTER_LEFT);
-        toolbar.setStyle("""
-            -fx-background-color: #2c3e50;
-            -fx-border-color: #1a252f;
-            -fx-border-width: 0 0 1 0;
-            """);
+        toolbar.getStyleClass().add("panel-toolbar");
 
-        Label title = new Label("📋 Work Log");
-        title.setStyle("-fx-text-fill: white; -fx-font-size: 14; -fx-font-weight: bold;");
+        Label title = new Label("Work Log");
+        title.getStyleClass().add("panel-toolbar-title");
 
         statusLabel = new Label("");
-        statusLabel.setStyle("-fx-text-fill: #95a5a6; -fx-font-size: 11;");
+        statusLabel.getStyleClass().add("panel-status");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         lastRefreshLabel = new Label("");
-        lastRefreshLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 10;");
+        lastRefreshLabel.getStyleClass().add("panel-refresh");
+
+        rawToggleBtn = new Button("<> Raw");
+        rawToggleBtn.getStyleClass().add("panel-toolbar-btn");
+        rawToggleBtn.setOnAction(e -> toggleRaw());
 
         Button refreshBtn = new Button("↻ Refresh");
-        refreshBtn.setStyle("""
-            -fx-background-color: #34495e;
-            -fx-text-fill: #ecf0f1;
-            -fx-border-color: #4a6278;
-            -fx-border-radius: 4;
-            -fx-background-radius: 4;
-            -fx-font-size: 11;
-            -fx-padding: 4 10;
-            """);
-        refreshBtn.setOnAction(e -> {
-            if (currentProject != null) loadLog(currentProject);
-        });
+        refreshBtn.getStyleClass().add("panel-toolbar-btn");
+        refreshBtn.setOnAction(e -> { if (currentProject != null) loadLog(currentProject); });
 
-        toolbar.getChildren().addAll(title, statusLabel, spacer, lastRefreshLabel, refreshBtn);
+        toolbar.getChildren().addAll(title, statusLabel, spacer, lastRefreshLabel, rawToggleBtn, refreshBtn);
 
-        // ── Split Pane ────────────────────────────────────────────
-        // Left: raw Markdown text (selectable, copyable)
-        rawTextArea = new TextArea();
-        rawTextArea.setEditable(false);
-        rawTextArea.setWrapText(false);
-        rawTextArea.setStyle("""
-            -fx-font-family: 'Consolas', 'Courier New', monospace;
-            -fx-font-size: 12;
-            -fx-control-inner-background: #1e1e1e;
-            -fx-text-fill: #d4d4d4;
-            """);
-
-        VBox leftPane = new VBox(rawTextArea);
-        VBox.setVgrow(rawTextArea, Priority.ALWAYS);
-        Label leftHeader = buildPaneHeader("📄 Raw Markdown");
-        leftPane.getChildren().add(0, leftHeader);
-
-        // Right: rendered Markdown (WebView)
+        // ── WebView ───────────────────────────────────────────────
         markdownView = new WebView();
         markdownView.setContextMenuEnabled(true);
-
-        VBox rightPane = new VBox(markdownView);
         VBox.setVgrow(markdownView, Priority.ALWAYS);
-        Label rightHeader = buildPaneHeader("🌐 Preview");
-        rightPane.getChildren().add(0, rightHeader);
+        markdownView.getEngine().loadContent(buildPlaceholderHtml());
 
-        SplitPane splitPane = new SplitPane(leftPane, rightPane);
-        splitPane.setDividerPositions(0.45);
-        VBox.setVgrow(splitPane, Priority.ALWAYS);
-
-        logRoot.getChildren().addAll(toolbar, splitPane);
+        logRoot.getChildren().addAll(toolbar, markdownView);
     }
 
-    private Label buildPaneHeader(String text) {
-        Label label = new Label(text);
-        label.setMaxWidth(Double.MAX_VALUE);
-        label.setPadding(new Insets(5, 12, 5, 12));
-        label.setStyle("""
-            -fx-background-color: #34495e;
-            -fx-text-fill: #bdc3c7;
-            -fx-font-size: 11;
-            -fx-font-weight: bold;
-            """);
-        return label;
+    // ════════════════════════════════════════════════════════════════
+    // RAW TOGGLE
+    // ════════════════════════════════════════════════════════════════
+
+    private void toggleRaw() {
+        showingRaw = !showingRaw;
+        // CSS class handles active/inactive button color
+        rawToggleBtn.getStyleClass().removeAll("panel-toolbar-btn", "panel-toolbar-btn-active");
+        rawToggleBtn.getStyleClass().add(showingRaw ? "panel-toolbar-btn-active" : "panel-toolbar-btn");
+        rawToggleBtn.setText(showingRaw ? "Preview" : "<> Raw");
+        rerender();
+    }
+
+    private void rerender() {
+        if (showingRaw) {
+            markdownView.getEngine().loadContent(wrapRaw(currentRawContent));
+        } else {
+            renderMarkdown(currentRawContent);
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -161,7 +127,7 @@ public class LogController {
 
     private void loadLog(String projectName) {
         try {
-            AppConfig config  = ConfigManager.load();
+            AppConfig config = ConfigManager.load();
             Path logPath = Paths.get(config.getWorkspace())
                     .resolve("01_Projects")
                     .resolve(projectName)
@@ -170,27 +136,28 @@ public class LogController {
 
             if (Files.exists(logPath)) {
                 String content = Files.readString(logPath);
-                // Only re-render if content actually changed (avoid flicker)
                 if (!content.equals(currentRawContent)) {
                     currentRawContent = content;
                     Platform.runLater(() -> {
-                        rawTextArea.setText(content);
-                        renderMarkdown(content);
+                        if (showingRaw) {
+                            markdownView.getEngine().loadContent(wrapRaw(content));
+                        } else {
+                            renderMarkdown(content);
+                        }
                         updateRefreshLabel();
                     });
                 }
             } else {
                 Platform.runLater(() -> {
-                    rawTextArea.setText("No work-log.md found for project: " + projectName);
-                    loadPlaceholderHtml(projectName);
+                    currentRawContent = "";
+                    markdownView.getEngine().loadContent(buildPlaceholderHtml(projectName));
                     updateRefreshLabel();
                 });
             }
 
         } catch (Exception e) {
-            Platform.runLater(() -> {
-                rawTextArea.setText("Failed to load log: " + e.getMessage());
-            });
+            Platform.runLater(() ->
+                    markdownView.getEngine().loadContent(buildErrorHtml(e.getMessage())));
             e.printStackTrace();
         }
     }
@@ -202,74 +169,93 @@ public class LogController {
             org.commonmark.renderer.html.HtmlRenderer renderer =
                     org.commonmark.renderer.html.HtmlRenderer.builder().build();
             String bodyHtml = renderer.render(parser.parse(markdown));
-            markdownView.getEngine().loadContent(wrapHtml(bodyHtml));
+            markdownView.getEngine().loadContent(wrapHtmlDark(bodyHtml));
         } catch (Exception e) {
             markdownView.getEngine().loadContent(
-                    "<pre style='color:red'>" + e.getMessage() + "</pre>");
+                    "<pre style='color:#fc8181'>" + e.getMessage() + "</pre>");
         }
     }
 
-    private void loadPlaceholderHtml(String projectName) {
-        markdownView.getEngine().loadContent(wrapHtml(
-                "<p style='color:#999;font-style:italic;'>" +
-                        "No work-log.md found for project: <strong>" + projectName + "</strong></p>"
-        ));
+    // ════════════════════════════════════════════════════════════════
+    // HTML WRAPPERS
+    // ════════════════════════════════════════════════════════════════
+
+    private String wrapHtmlDark(String body) {
+        String bg     = ThemeManager.htmlBg();
+        String text   = ThemeManager.htmlText();
+        String h1col  = ThemeManager.htmlHeading();
+        String border = ThemeManager.htmlBorder();
+        String muted  = ThemeManager.htmlMuted();
+        String code   = ThemeManager.htmlCode();
+        String codeT  = ThemeManager.htmlCodeText();
+        String link   = ThemeManager.htmlLink();
+        String quote  = ThemeManager.htmlQuote();
+        String quoteT = ThemeManager.htmlQuoteText();
+
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>"
+             + "*{box-sizing:border-box;}"
+             + "body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.75;"
+             +   "color:" + text + ";padding:22px 28px;margin:0;background:" + bg + ";"
+             +   "-webkit-user-select:text;user-select:text;}"
+             + "h1{font-size:20px;color:" + h1col + ";border-bottom:2px solid #2563eb;padding-bottom:6px;margin:0 0 16px;}"
+             + "h2{font-size:16px;color:" + text + ";border-bottom:1px solid " + border + ";padding-bottom:4px;margin:22px 0 10px;}"
+             + "h3{font-size:14px;color:" + muted + ";margin:14px 0 6px;}"
+             + "ul,ol{padding-left:24px;} li{margin:4px 0;}"
+             + "code{background:" + code + ";padding:2px 7px;border-radius:4px;"
+             +   "font-family:'Consolas','Courier New',monospace;font-size:12px;color:" + codeT + ";}"
+             + "pre{background:" + code + ";color:" + text + ";padding:14px 16px;border-radius:6px;"
+             +   "font-size:12px;overflow-x:auto;border-left:3px solid #2563eb;}"
+             + "pre code{background:none;color:" + text + ";padding:0;}"
+             + "blockquote{border-left:4px solid #2563eb;margin:0;padding:8px 16px;"
+             +   "background:" + quote + ";color:" + quoteT + ";border-radius:0 4px 4px 0;}"
+             + "strong{color:" + h1col + ";}"
+             + "hr{border:none;border-top:1px solid " + border + ";margin:18px 0;}"
+             + "p{margin:6px 0;}"
+             + "a{color:" + link + ";text-decoration:none;} a:hover{text-decoration:underline;}"
+             + "</style></head><body>" + body + "</body></html>";
     }
 
-    private String wrapHtml(String body) {
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-            <meta charset="UTF-8">
-            <style>
-                body {
-                    font-family: 'Segoe UI', Arial, sans-serif;
-                    font-size: 14px;
-                    line-height: 1.7;
-                    color: #2c3e50;
-                    padding: 20px 24px;
-                    margin: 0;
-                    background: white;
-                }
-                h1 { font-size: 20px; border-bottom: 2px solid #3498db; padding-bottom: 6px; color: #1a252f; }
-                h2 { font-size: 17px; border-bottom: 1px solid #ecf0f1; padding-bottom: 4px;
-                     color: #2c3e50; margin-top: 20px; }
-                h3 { font-size: 14px; color: #34495e; margin-top: 14px; }
-                ul, ol { padding-left: 22px; }
-                li { margin: 3px 0; }
-                code {
-                    background: #f4f6f7; padding: 2px 6px;
-                    border-radius: 4px; font-family: 'Consolas', monospace;
-                    font-size: 12px; color: #c0392b;
-                }
-                pre {
-                    background: #1e1e1e; color: #d4d4d4;
-                    padding: 14px; border-radius: 6px;
-                    font-size: 12px; overflow-x: auto;
-                    border-left: 3px solid #3498db;
-                }
-                pre code { background: none; color: #d4d4d4; padding: 0; }
-                blockquote {
-                    border-left: 4px solid #3498db;
-                    margin: 0; padding: 8px 16px;
-                    background: #eaf4fb; color: #1a5276;
-                }
-                strong { color: #1a252f; }
-                hr { border: none; border-top: 1px solid #ecf0f1; margin: 16px 0; }
-                p { margin: 6px 0; }
-                /* TASK_EVENT comments are hidden in HTML */
-            </style>
-            </head>
-            <body>%s</body>
-            </html>
-            """.formatted(body);
+    private String wrapRaw(String content) {
+        String escaped = content
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+        String bg   = ThemeManager.htmlBg();
+        String text = ThemeManager.isDark() ? "#d4d4d4" : "#334155";
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>"
+             + "body{background:" + bg + ";color:" + text + ";"
+             +   "font-family:'Consolas','Courier New',monospace;font-size:12px;"
+             +   "padding:16px 20px;margin:0;-webkit-user-select:text;user-select:text;}"
+             + "pre{white-space:pre-wrap;word-break:break-word;}"
+             + "</style></head><body><pre>" + escaped + "</pre></body></html>";
+    }
+
+    private String buildPlaceholderHtml() { return buildPlaceholderHtml(null); }
+
+    private String buildPlaceholderHtml(String projectName) {
+        String bg    = ThemeManager.htmlBg();
+        String muted = ThemeManager.htmlDim();
+        String strong= ThemeManager.htmlMuted();
+        String msg = projectName != null
+                ? "No work-log.md found for project: <strong style='color:" + strong + "'>" + projectName + "</strong>"
+                : "Select a project to view the work log.";
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>"
+             + "body{background:" + bg + ";color:" + muted + ";font-family:'Segoe UI',sans-serif;"
+             +   "display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:14px;}"
+             + "p{text-align:center;line-height:1.8;}"
+             + "</style></head><body><p>" + msg + "</p></body></html>";
+    }
+
+    private String buildErrorHtml(String msg) {
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+             + "<style>body{background:" + ThemeManager.htmlBg() + ";color:#fc8181;"
+             +   "font-family:monospace;padding:20px;}</style>"
+             + "</head><body><pre>Failed to load log:\n" + (msg == null ? "" : msg) + "</pre></body></html>";
     }
 
     private void updateRefreshLabel() {
-        String time = LocalDateTime.now().format(
-                DateTimeFormatter.ofPattern("HH:mm:ss"));
-        lastRefreshLabel.setText("Last refresh: " + time);
+        lastRefreshLabel.setText("Refreshed " +
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -283,12 +269,7 @@ public class LogController {
                     .resolve("01_Projects")
                     .resolve(projectName)
                     .resolve("notes");
-
-            // Tell ProjectContext to watch this directory
-            // Any change to tasks.md or work-log.md fires notifyFileChanged()
-            // which calls our addFileChangeListener callback above
             ProjectContext.watchProjectDir(notesDir);
-
         } catch (Exception e) {
             System.err.println("[LogController] Failed to start watcher: " + e.getMessage());
         }

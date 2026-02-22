@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.web.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.workctl.gui.controller.WeeklyReportController"
+      spacing="0">
+
+    <!-- ── Toolbar (styleClass="report-toolbar" for theme CSS) ─── -->
+    <ToolBar styleClass="report-toolbar">
+
+        <Label text="Week:" style="-fx-font-weight: bold;"/>
+
+        <DatePicker fx:id="weekStartPicker" prefWidth="135"/>
+
+        <Label text="–" style="-fx-padding: 0 2 0 2;"/>
+
+        <DatePicker fx:id="weekEndPicker" prefWidth="135"/>
+
+        <Button fx:id="generateBtn"
+                text="Generate"
+                onAction="#handleGenerate"
+                style="
+                    -fx-background-color: #2563eb;
+                    -fx-text-fill: white;
+                    -fx-font-weight: bold;
+                    -fx-background-radius: 4;
+                    -fx-cursor: hand;
+                "/>
+
+        <Separator orientation="VERTICAL"/>
+
+        <Button fx:id="exportTxtBtn"
+                text="Export TXT"
+                onAction="#handleExportTxt"
+                disable="true"
+                style="-fx-cursor: hand;"/>
+
+        <Button fx:id="exportPdfBtn"
+                text="Export PDF"
+                onAction="#handleExportPdf"
+                disable="true"
+                style="-fx-cursor: hand;"/>
+
+        <Separator orientation="VERTICAL"/>
+
+        <Label fx:id="statusLabel"
+               text="Select a project and week, then click Generate"
+               style="-fx-text-fill: #888888; -fx-font-size: 11;"/>
+
+    </ToolBar>
+
+    <!-- ── Report preview (WebView fills remaining height) ──────── -->
+    <WebView fx:id="reportWebView" VBox.vgrow="ALWAYS"/>
+
+</VBox>

@@ -125,50 +125,92 @@ workctl config set anthropicApiKey sk-ant-YOUR_KEY_HERE
 
 ---
 
-## 6. Tab Completion (macOS / Linux only)
+## 6. Tab Completion
 
-Tab completion lets you press `Tab` to auto-complete commands and **project names**.
+Tab completion lets you press `Tab` to auto-complete commands and **live project names**.
+
+### Platform support
+
+| Platform | Supported | Notes |
+|---|---|---|
+| macOS (zsh) | ✓ | Default shell; requires `bashcompinit` bridge (see below) |
+| macOS (bash) | ✓ | Less common but works the same as Linux bash |
+| Linux (bash) | ✓ | Works out of the box |
+| Linux (zsh) | ✓ | Same `bashcompinit` setup as macOS zsh |
+| Windows CMD / PowerShell | ✗ | Not supported — completion uses bash syntax |
+| Windows Git Bash / WSL | ✓ | Follow the Linux bash steps |
+
+The completion script uses bash `complete` syntax and is generated only on macOS/Linux.
+On Windows the `installDist` build step prints a skip notice and continues normally.
 
 ### One-time setup
 
-After building the CLI, run:
+**Step 1 — Build the CLI** (generates `~/.workctl/workctl_completion`):
 
 ```bash
-./gradlew :cli:installDist   # generates ~/.workctl/workctl_completion
+./gradlew :cli:installDist
 ```
 
-Then add these lines to `~/.zshrc` (zsh) or `~/.bashrc` (bash):
+**Step 2 — Add to your shell profile:**
 
-```bash
-# workctl tab completion
+**zsh** (`~/.zshrc`) — macOS default and common on Linux:
+```zsh
+# workctl tab completion (bash-style, bridged via bashcompinit)
 autoload -U +X bashcompinit && bashcompinit
 autoload -U +X compinit && compinit
-source ~/.workctl/workctl_completion
+[ -f ~/.workctl/workctl_completion ] && source ~/.workctl/workctl_completion
 ```
 
-Reload your shell:
+**bash** (`~/.bashrc` or `~/.bash_profile`) — Linux default, Git Bash, WSL:
 ```bash
-source ~/.zshrc   # or source ~/.bashrc
+# workctl tab completion
+[ -f ~/.workctl/workctl_completion ] && source ~/.workctl/workctl_completion
+```
+
+> The `autoload` lines are **zsh-specific**. Do not add them to a bash profile — they are not needed and will produce errors.
+
+**Step 3 — Reload:**
+```bash
+source ~/.zshrc    # zsh
+source ~/.bashrc   # bash
+```
+
+### When do you need to re-source?
+
+| Situation | Re-source needed? |
+|---|---|
+| New terminal window (profile already updated) | No — loaded automatically |
+| You created or deleted a project | **No** — project names are fetched live at tab-press time |
+| `installDist` added a new command or flag | Yes — current session needs to reload the script |
+| You ran `workctl-build` | No — it calls `source` for you automatically |
+
+Project name completion works by calling `workctl project list --plain` at the moment you press `Tab`, so it always reflects the current workspace without any manual steps. The `--plain` flag is also useful for scripting:
+
+```bash
+# Get a plain list of project names (no ANSI, no headers)
+workctl project list --plain
 ```
 
 ### What tab completion covers
 
 ```bash
-workctl <TAB>               # lists all commands
-workctl project <TAB>       # create  list  delete
-workctl insight <TAB>       # lists your actual project names
-workctl task add <TAB>      # lists your actual project names
-workctl project delete <TAB> # lists your actual project names
+workctl <TAB>                # lists all commands
+workctl project <TAB>        # create  list  delete
+workctl insight <TAB>        # lists your actual project names (live)
+workctl task list <TAB>      # lists your actual project names (live)
+workctl task add <TAB>       # lists your actual project names (live)
+workctl project delete <TAB> # lists your actual project names (live)
+workctl log <TAB>            # lists your actual project names (live)
+workctl ask <TAB>            # lists your actual project names (live)
 ```
-
-> **Windows:** Bash/zsh completion is not supported in CMD or PowerShell.
-> Git Bash or WSL users can follow the macOS/Linux steps above.
 
 ---
 
 ## 7. Developer Shortcut — `workctl-build`
 
-Instead of running Gradle commands manually every time, add this function to your shell profile. It rebuilds everything, reloads completions, and launches the GUI in one command.
+Instead of running Gradle commands manually every time, add this function to your shell profile. It rebuilds everything, reloads completions in the **current** shell session, and launches the GUI in one command.
+
+> **Note:** The build automatically regenerates `~/.workctl/workctl_completion` on disk (via the `generateCompletion` Gradle task). The `source` call in `workctl-build` then reloads it into the current session. New terminal windows always get the latest version from the file automatically.
 
 ### macOS / Linux (zsh or bash)
 
@@ -268,12 +310,34 @@ Java is not installed or not on PATH. Install JDK 17 (see Prerequisites above).
 chmod +x gradlew
 ```
 
+### Tab completion doesn't work at all
+Verify the completion file exists and is sourced:
+```bash
+ls ~/.workctl/workctl_completion   # should exist after installDist
+type _complete_workctl_dynamic     # should print a function definition
+```
+If missing, run `./gradlew :cli:installDist`, then check your shell profile has the `source` line (see Section 6).
+
 ### Tab completion shows filesystem paths instead of project names
-The completion file needs to be reloaded after a rebuild:
+The completion file is not loaded in the current session. Reload it:
 ```bash
 source ~/.workctl/workctl_completion
 ```
-Or just run `workctl-build` which reloads automatically.
+Or run `workctl-build` — it reloads automatically.
+
+Also verify `workctl` is on PATH (needed for `_workctl_project_names` to call it at tab-press time):
+```bash
+which workctl
+```
+
+### Tab completion doesn't show a newly created project
+This should not happen — project names are fetched live at tab-press time via `workctl project list --plain`. If it does, check that the project was created successfully:
+```bash
+workctl project list --plain
+```
+
+### Tab completion: zsh shows `autoload: function not found` or similar
+You may have added the `autoload` lines to a bash profile instead of zsh, or vice versa. The `autoload -U +X bashcompinit` lines are **zsh-only**. For bash, remove them — just the `source` line is needed.
 
 ### GUI doesn't launch on Linux
 JavaFX requires a display. Make sure you're running in a desktop environment, not a headless SSH session.
@@ -302,4 +366,4 @@ workctl/
 
 ---
 
-*Last updated: 2026-02-21*
+*Last updated: 2026-02-21 — tab completion section expanded with platform matrix, re-source guide, and `--plain` flag docs*

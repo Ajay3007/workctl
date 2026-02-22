@@ -2,107 +2,82 @@
 
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.geometry.Insets?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.workctl.gui.controller.TaskController"
-      spacing="15">
-
-    <padding>
-        <Insets top="15" right="15" bottom="15" left="15"/>
-    </padding>
+      spacing="0"
+      styleClass="kanban-root">
 
     <!-- ========================= -->
-    <!-- Toolbar: Add Task + Search -->
+    <!-- Toolbar                   -->
     <!-- ========================= -->
-    <HBox spacing="15" alignment="CENTER_LEFT">
+    <HBox spacing="12" alignment="CENTER_LEFT"
+          styleClass="kanban-toolbar"
+          style="-fx-padding: 10 16 10 16;">
 
         <Button text="+ Add Task"
                 onAction="#handleAddTask"
-                style="-fx-font-weight: bold;
-                       -fx-background-radius: 6;
-                       -fx-padding: 6 14 6 14;" />
+                styleClass="add-task-btn"/>
 
-        <Label text="Create a detailed task with Markdown support and priority."
-               style="-fx-text-fill: #666666;" />
+        <Region HBox.hgrow="ALWAYS"/>
 
-        <!-- Spacer pushes search to the right -->
-        <Region HBox.hgrow="ALWAYS" />
-
-        <!-- Search bar -->
-        <Label text="🔍"
-               style="-fx-font-size: 14;" />
+        <Label text="&#128269;" styleClass="search-icon"/>
 
         <TextField fx:id="searchField"
-                   promptText="Search tasks by keyword or tag..."
-                   prefWidth="260"
-                   style="-fx-background-radius: 16;
-                          -fx-border-radius: 16;
-                          -fx-border-color: #ced4da;
-                          -fx-padding: 5 12;" />
+                   promptText="Search tasks&#8230;"
+                   prefWidth="240"
+                   styleClass="search-field"/>
 
         <Button fx:id="clearSearchBtn"
-                text="✕"
+                text="&#10005;"
                 onAction="#handleClearSearch"
-                style="-fx-background-color: transparent;
-                       -fx-text-fill: #999;
-                       -fx-font-size: 12;
-                       -fx-cursor: hand;
-                       -fx-padding: 4 8;" />
+                styleClass="clear-search-btn"/>
 
     </HBox>
-
 
     <!-- ========================= -->
     <!-- Kanban Board              -->
     <!-- ========================= -->
-    <HBox spacing="20">
+    <HBox spacing="14" VBox.vgrow="ALWAYS"
+          styleClass="kanban-board"
+          style="-fx-padding: 14;">
 
-        <!-- OPEN -->
-        <VBox prefWidth="320">
-            <Label fx:id="openCountLabel"
-                   text="Open (0)"
-                   style="-fx-font-weight: bold; -fx-font-size: 14;" />
-
-            <ScrollPane fx:id="openScroll"
-                        fitToWidth="true"
-                        prefHeight="600">
-
-                <VBox fx:id="openColumn"
-                      spacing="8"
-                      style="-fx-padding: 5;" />
+        <!-- OPEN column -->
+        <VBox HBox.hgrow="ALWAYS" spacing="0" styleClass="kanban-column">
+            <HBox alignment="CENTER_LEFT" spacing="8" styleClass="kanban-col-header"
+                  style="-fx-padding: 10 14 10 14;">
+                <Label text="&#9679;" style="-fx-text-fill: #fc8181; -fx-font-size: 10;"/>
+                <Label fx:id="openCountLabel" text="Open (0)" styleClass="kanban-col-title"/>
+            </HBox>
+            <ScrollPane fx:id="openScroll" fitToWidth="true" VBox.vgrow="ALWAYS"
+                        styleClass="kanban-col-scroll">
+                <VBox fx:id="openColumn" spacing="8" style="-fx-padding: 10;"/>
             </ScrollPane>
         </VBox>
 
-        <!-- IN PROGRESS -->
-        <VBox prefWidth="320">
-            <Label fx:id="inProgressCountLabel"
-                   text="In Progress (0)"
-                   style="-fx-font-weight: bold; -fx-font-size: 14;" />
-
-            <ScrollPane fx:id="inProgressScroll"
-                        fitToWidth="true"
-                        prefHeight="600">
-
-                <VBox fx:id="inProgressColumn"
-                      spacing="8"
-                      style="-fx-padding: 5;" />
+        <!-- IN PROGRESS column -->
+        <VBox HBox.hgrow="ALWAYS" spacing="0" styleClass="kanban-column">
+            <HBox alignment="CENTER_LEFT" spacing="8" styleClass="kanban-col-header"
+                  style="-fx-padding: 10 14 10 14;">
+                <Label text="&#9679;" style="-fx-text-fill: #f6ad55; -fx-font-size: 10;"/>
+                <Label fx:id="inProgressCountLabel" text="In Progress (0)" styleClass="kanban-col-title"/>
+            </HBox>
+            <ScrollPane fx:id="inProgressScroll" fitToWidth="true" VBox.vgrow="ALWAYS"
+                        styleClass="kanban-col-scroll">
+                <VBox fx:id="inProgressColumn" spacing="8" style="-fx-padding: 10;"/>
             </ScrollPane>
         </VBox>
 
-        <!-- DONE -->
-        <VBox prefWidth="320">
-            <Label fx:id="doneCountLabel"
-                   text="Done (0)"
-                   style="-fx-font-weight: bold; -fx-font-size: 14;" />
-
-            <ScrollPane fx:id="doneScroll"
-                        fitToWidth="true"
-                        prefHeight="600">
-
-                <VBox fx:id="doneColumn"
-                      spacing="8"
-                      style="-fx-padding: 5;" />
+        <!-- DONE column -->
+        <VBox HBox.hgrow="ALWAYS" spacing="0" styleClass="kanban-column">
+            <HBox alignment="CENTER_LEFT" spacing="8" styleClass="kanban-col-header"
+                  style="-fx-padding: 10 14 10 14;">
+                <Label text="&#9679;" style="-fx-text-fill: #68d391; -fx-font-size: 10;"/>
+                <Label fx:id="doneCountLabel" text="Done (0)" styleClass="kanban-col-title"/>
+            </HBox>
+            <ScrollPane fx:id="doneScroll" fitToWidth="true" VBox.vgrow="ALWAYS"
+                        styleClass="kanban-col-scroll">
+                <VBox fx:id="doneColumn" spacing="8" style="-fx-padding: 10;"/>
             </ScrollPane>
         </VBox>
 
