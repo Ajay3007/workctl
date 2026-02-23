@@ -13,7 +13,7 @@ plugins {
 
 allprojects {
     group = 'com.workctl'
-    version = '1.0.0'
+    version = '1.1.0'
 }
 
 /* =====================================================
@@ -75,7 +75,7 @@ tasks.register("packageRelease", Copy) {
 def releaseDir = file("$buildDir/release")
 
 tasks.register("releaseAll") {
-    dependsOn ":cli:packageApp"
+    dependsOn ":cli:packageNative"
     dependsOn ":gui:packageApp"
 
     doLast {

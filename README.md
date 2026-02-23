@@ -1,8 +1,17 @@
 # workctl
 
-**v1.0.0** · A hybrid CLI + GUI developer productivity system built in Java.
+**v1.1.0** · A hybrid CLI + GUI developer productivity system built in Java.
 
 Workctl combines structured Markdown storage, Kanban task tracking, subtask management, AI-powered assistance, and project workspace management — all filesystem-backed and version-control friendly.
+
+---
+
+## What's New in 1.1.0
+- **Interview Preparation Tab:** A dedicated workspace per-interview featuring a custom task-like board for managing interview questions (add, edit, delete, mark done).
+- **Kanban "Done" Safeguard:** Moving a task with open subtasks to the "Done" column now triggers a confirmation dialog to prevent accidental closes.
+- **Enhanced Light Theme:** Light Theme is now the default, featuring significant improvements to text legibility, contrast, and visual hierarchy.
+- **Meeting detail view:** Click a meeting to view a full HTML-rendered "Web View" of the meeting agenda, attendees, and action items.
+- **Cleaned up Interface:** Simplified sidebar and better Dynamic Window Bounds that respect smaller screen sizes.
 
 ---
 
@@ -12,12 +21,12 @@ Pre-built portable binaries for Windows (no Java or JavaFX installation needed):
 
 | Package | Platform | Download |
 |---------|----------|----------|
-| GUI (JavaFX desktop app) | Windows | [workctl-gui-1.0.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.0.0) |
-| CLI (terminal tool) | Windows | [workctl-1.0.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.0.0) |
+| GUI (JavaFX desktop app) | Windows | [workctl-gui-1.1.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.1.0) |
+| CLI (terminal tool) | Windows | [workctl-1.1.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.1.0) |
 
 **Windows GUI:** Unzip → double-click `workctl-gui.exe`
 
-**Windows CLI:** Unzip → add the `workctl-1.0.0/` folder to PATH → run `workctl`
+**Windows CLI:** Unzip → add the `workctl-1.1.0/` folder to PATH → run `workctl`
 
 > macOS and Linux users: build from source (see [Getting Started](#getting-started) below).
 
