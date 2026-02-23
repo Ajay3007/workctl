@@ -1,8 +1,25 @@
 # workctl
 
-A hybrid CLI + GUI developer productivity system built in Java.
+**v1.0.0** · A hybrid CLI + GUI developer productivity system built in Java.
 
 Workctl combines structured Markdown storage, Kanban task tracking, subtask management, AI-powered assistance, and project workspace management — all filesystem-backed and version-control friendly.
+
+---
+
+## Download
+
+Pre-built portable binaries for Windows (no Java or JavaFX installation needed):
+
+| Package | Platform | Download |
+|---------|----------|----------|
+| GUI (JavaFX desktop app) | Windows | [workctl-gui-1.0.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.0.0) |
+| CLI (terminal tool) | Windows | [workctl-1.0.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.0.0) |
+
+**Windows GUI:** Unzip → double-click `workctl-gui.exe`
+
+**Windows CLI:** Unzip → add the `workctl-1.0.0/` folder to PATH → run `workctl`
+
+> macOS and Linux users: build from source (see [Getting Started](#getting-started) below).
 
 ---
 

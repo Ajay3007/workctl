@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.workctl.gui.controller.InterviewController">
+
+    <center>
+        <TabPane fx:id="interviewTabPane" styleClass="main-tab-pane">
+
+            <!-- ── Interviews tab ── -->
+            <Tab text="Interviews" closable="false">
+                <VBox>
+                    <!-- Toolbar -->
+                    <HBox styleClass="kanban-toolbar" alignment="CENTER_LEFT" spacing="10"
+                          style="-fx-padding: 8 14;">
+                        <Label text="Round:" style="-fx-font-size: 12;"/>
+                        <ComboBox fx:id="roundFilterCombo" prefWidth="130"/>
+                        <Label text="Result:" style="-fx-font-size: 12;"/>
+                        <ComboBox fx:id="resultFilterCombo" prefWidth="120"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="newInterviewBtn"
+                                text="+ New Interview"
+                                styleClass="add-task-btn"
+                                onAction="#handleNewInterview"/>
+                    </HBox>
+
+                    <!-- Interview card list -->
+                    <ScrollPane styleClass="kanban-col-scroll"
+                                VBox.vgrow="ALWAYS"
+                                fitToWidth="true"
+                                hbarPolicy="NEVER">
+                        <VBox fx:id="interviewListVBox"
+                              spacing="10"
+                              style="-fx-padding: 14;"/>
+                    </ScrollPane>
+                </VBox>
+            </Tab>
+
+            <!-- ── Prep Topics tab ── -->
+            <Tab text="Prep Topics" closable="false">
+                <VBox>
+                    <!-- Toolbar -->
+                    <HBox styleClass="kanban-toolbar" alignment="CENTER_LEFT" spacing="10"
+                          style="-fx-padding: 8 14;">
+                        <Label text="Category:" style="-fx-font-size: 12;"/>
+                        <ComboBox fx:id="categoryFilterCombo" prefWidth="150"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="addTopicBtn"
+                                text="+ Add Topic"
+                                styleClass="add-task-btn"
+                                onAction="#handleAddTopic"/>
+                    </HBox>
+
+                    <!-- Prep topics list -->
+                    <ScrollPane styleClass="kanban-col-scroll"
+                                VBox.vgrow="ALWAYS"
+                                fitToWidth="true"
+                                hbarPolicy="NEVER">
+                        <VBox fx:id="prepTopicsVBox"
+                              spacing="6"
+                              style="-fx-padding: 14;"/>
+                    </ScrollPane>
+                </VBox>
+            </Tab>
+
+        </TabPane>
+    </center>
+
+</BorderPane>

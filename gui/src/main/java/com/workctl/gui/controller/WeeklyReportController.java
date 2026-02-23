@@ -165,7 +165,7 @@ public class WeeklyReportController {
     // ── HTML report builder ───────────────────────────────────────
 
     private String buildHtmlReport(WeeklyReportData d) {
-        StringBuilder html = new StringBuilder(HTML_HEAD);
+        StringBuilder html = new StringBuilder(buildHtmlHead());
 
         // Title
         html.append("<h1>").append(esc(d.getProjectName())).append("</h1>\n");
@@ -499,23 +499,26 @@ public class WeeklyReportController {
         PDFont bold  = PDType1Font.HELVETICA_BOLD;
         PDFont reg   = PDType1Font.HELVETICA;
 
-        float[] white  = {1f, 1f, 1f};
-        float[] dark   = {0.12f, 0.12f, 0.15f};
-        float[] accent = {0.13f, 0.83f, 0.67f};  // teal
-        float[] muted  = {0.45f, 0.53f, 0.6f};
-        float[] red    = {0.87f, 0.27f, 0.27f};
-        float[] yellow = {0.95f, 0.77f, 0.3f};
-        float[] gray   = {0.3f, 0.35f, 0.4f};
+        boolean isDark  = ThemeManager.isDark();
+        float[] bgColor  = isDark ? new float[]{0.12f, 0.12f, 0.15f}  : new float[]{0.972f, 0.984f, 0.992f};
+        float[] primary  = isDark ? new float[]{1f, 1f, 1f}            : new float[]{0.059f, 0.090f, 0.149f};
+        float[] accent   = {0.13f, 0.83f, 0.67f};  // teal — same for both themes
+        float[] muted    = isDark ? new float[]{0.45f, 0.53f, 0.6f}   : new float[]{0.39f, 0.45f, 0.52f};
+        float[] red      = {0.87f, 0.27f, 0.27f};  // same for both themes
+        float[] yellow   = isDark ? new float[]{0.95f, 0.77f, 0.3f}   : new float[]{0.78f, 0.42f, 0.04f};
+        float[] gray     = isDark ? new float[]{0.3f, 0.35f, 0.4f}    : new float[]{0.75f, 0.80f, 0.85f};
+        float[] bandBg   = isDark ? new float[]{0.11f, 0.19f, 0.32f}  : new float[]{0.882f, 0.914f, 0.949f};
+        float[] tagColor = isDark ? new float[]{0.49f, 0.83f, 0.98f}  : new float[]{0.145f, 0.388f, 0.922f};
 
         try (PDDocument doc = new PDDocument()) {
             // Background is drawn automatically by PdfCtx.newPage() on every page
-            PdfCtx ctx = new PdfCtx(doc, dark);
+            PdfCtx ctx = new PdfCtx(doc, bgColor);
 
             // ── Title block ───────────────────────────────────────
             ctx.nl(8);
             ctx.drawText("WEEKLY REPORT", MARGIN, bold, 22, accent);
             ctx.nl(28);
-            ctx.drawText(d.getProjectName(), MARGIN, bold, 15, white);
+            ctx.drawText(d.getProjectName(), MARGIN, bold, 15, primary);
             ctx.nl(18);
             ctx.drawText(
                 "Week: " + d.getWeekStart().format(DATE_FMT)
@@ -527,7 +530,7 @@ public class WeeklyReportController {
 
             // ── Metrics band ──────────────────────────────────────
             float bandY = ctx.y - 44;
-            ctx.drawRect(MARGIN - 8, bandY, CONTENT_W + 16, 50, new float[]{0.11f, 0.19f, 0.32f});
+            ctx.drawRect(MARGIN - 8, bandY, CONTENT_W + 16, 50, bandBg);
             float[] cols = {MARGIN, MARGIN + 90, MARGIN + 180, MARGIN + 270, MARGIN + 360};
             String[][] metrics = {
                 {String.valueOf(d.getCompletedThisWeek()), "Completed"},
@@ -547,7 +550,7 @@ public class WeeklyReportController {
 
             // ── Headline ──────────────────────────────────────────
             ctx.checkPage(30);
-            ctx.drawText(d.getHeadline(), MARGIN, bold, 11, white);
+            ctx.drawText(d.getHeadline(), MARGIN, bold, 11, primary);
             ctx.nl(18);
 
             // ── Observations ──────────────────────────────────────
@@ -609,8 +612,7 @@ public class WeeklyReportController {
                     ctx.checkPage(14);
                     float barW = (e.getValue() * 120f / maxCount);
                     // tag name
-                    ctx.drawText("#" + sanitizePdf(e.getKey()), MARGIN + 4, reg, 10,
-                            new float[]{0.49f, 0.83f, 0.98f});
+                    ctx.drawText("#" + sanitizePdf(e.getKey()), MARGIN + 4, reg, 10, tagColor);
                     // bar background
                     ctx.drawRect(MARGIN + 110, ctx.y - 2, 122, 10, gray);
                     // bar fill
@@ -728,7 +730,7 @@ public class WeeklyReportController {
                 ? "<p class='empty'>No project selected.<br>Pick one from the left sidebar.</p>"
                 : "<p class='empty'><b>" + esc(project) + "</b> selected.<br>"
                     + "Choose a week range and click <b>Generate</b> to create your report.</p>";
-        reportWebView.getEngine().loadContent(PLACEHOLDER_HEAD + body + "</body></html>", "text/html");
+        reportWebView.getEngine().loadContent(buildPlaceholderHead() + body + "</body></html>", "text/html");
     }
 
     private void setStatus(String msg) {
@@ -750,74 +752,93 @@ public class WeeklyReportController {
         return project + "-weekly-" + week + "." + ext;
     }
 
-    // ── Static HTML assets ────────────────────────────────────────
+    // ── Theme-aware HTML assets ────────────────────────────────────
 
-    private static final String HTML_HEAD = """
-        <!DOCTYPE html>
-        <html><head><meta charset="UTF-8"><style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-             background:#0f1117;color:#e2e8f0;max-width:920px;margin:0 auto;
-             padding:32px 44px;font-size:14px;line-height:1.6}
-        h1{font-size:22px;font-weight:700;color:#f8fafc;margin-bottom:4px}
-        .meta{color:#64748b;font-size:12px;margin-bottom:24px}
-        .headline{background:#1e293b;border-left:3px solid #22d3ee;
-                  padding:12px 16px;border-radius:4px;margin-bottom:20px;
-                  font-size:14px;display:flex;align-items:center;gap:10px}
-        .vel-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;
-                   white-space:nowrap;flex-shrink:0}
-        .vel-elite{background:#065f46;color:#6ee7b7}
-        .vel-high{background:#164e63;color:#67e8f9}
-        .vel-strong{background:#1e3a5f;color:#93c5fd}
-        .vel-steady{background:#3f3f46;color:#d4d4d8}
-        .vel-quiet{background:#27272a;color:#71717a}
-        .metrics-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-        .metric{background:#1e293b;border-radius:6px;padding:12px 16px;
-                flex:1;min-width:90px;text-align:center}
-        .metric-value{font-size:22px;font-weight:700;color:#22d3ee}
-        .metric-label{font-size:10px;color:#64748b;text-transform:uppercase;
-                      letter-spacing:.06em;margin-top:2px}
-        .score-elite{color:#6ee7b7}.score-strong{color:#93c5fd}
-        .score-stable{color:#fcd34d}.score-stalled{color:#fca5a5}
-        h2{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;
-           color:#64748b;border-top:1px solid #1e293b;padding-top:18px;
-           margin-top:18px;margin-bottom:10px}
-        .task-row{display:flex;align-items:flex-start;gap:8px;
-                  padding:7px 0;border-bottom:1px solid #1a2035}
-        .task-row:last-child{border-bottom:none}
-        .badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;
-               white-space:nowrap;flex-shrink:0}
-        .p1{background:#7f1d1d;color:#fca5a5}
-        .p2{background:#78350f;color:#fcd34d}
-        .p3{background:#1e293b;color:#94a3b8}
-        .icon-done{color:#4ade80;font-weight:bold;flex-shrink:0}
-        .icon-wip{color:#60a5fa;flex-shrink:0}
-        .icon-new{color:#a78bfa;flex-shrink:0}
-        .icon-warn{color:#f87171;flex-shrink:0}
-        .task-title{flex:1;color:#cbd5e1}
-        .task-meta{font-size:11px;color:#475569;flex-shrink:0}
-        .stale{color:#f87171}
-        .insight-list{padding:0;list-style:none}
-        .insight-list li{padding:5px 0;color:#94a3b8;font-size:13px}
-        .insight-list li::before{content:'→ ';color:#22d3ee}
-        .tag-row{display:flex;align-items:center;gap:10px;padding:4px 0}
-        .tag-name{color:#7dd3fc;font-size:12px;width:110px;flex-shrink:0}
-        .tag-bar-bg{background:#1e293b;border-radius:2px;flex:1;height:13px;max-width:280px}
-        .tag-bar-fill{background:#3b82f6;height:13px;border-radius:2px}
-        .tag-count{color:#64748b;font-size:12px;width:26px}
-        .log-entry{color:#94a3b8;font-size:12px;padding:3px 0;font-family:monospace}
-        .empty{color:#475569;font-style:italic;padding:8px 0;font-size:13px}
-        </style></head><body>
-        """;
+    private String buildHtmlHead() {
+        boolean dark      = ThemeManager.isDark();
+        String bg         = dark ? "#0f1117"  : "#f8fafc";
+        String text       = dark ? "#e2e8f0"  : "#1e293b";
+        String heading    = dark ? "#f8fafc"  : "#0f172a";
+        String surface    = dark ? "#1e293b"  : "#f1f5f9";
+        String rowBorder  = dark ? "#1a2035"  : "#e2e8f0";
+        String border     = dark ? "#1e293b"  : "#e2e8f0";
+        String muted      = "#64748b";
+        String taskTitle  = dark ? "#cbd5e1"  : "#334155";
+        String taskMeta   = dark ? "#475569"  : "#64748b";
+        String dim        = dark ? "#94a3b8"  : "#475569";
+        String p3bg       = dark ? "#1e293b"  : "#e2e8f0";
+        String p3text     = dark ? "#94a3b8"  : "#475569";
+        String tagName    = dark ? "#7dd3fc"  : "#2563eb";
 
-    private static final String PLACEHOLDER_HEAD = """
-        <!DOCTYPE html>
-        <html><head><meta charset="UTF-8"><style>
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-             background:#0f1117;color:#64748b;display:flex;align-items:center;
-             justify-content:center;height:100vh;margin:0;font-size:14px;text-align:center}
-        .empty{line-height:1.8}
-        b{color:#94a3b8}
-        </style></head><body><div class='empty'>
-        """;
+        return "<!DOCTYPE html>"
+            + "<html><head><meta charset=\"UTF-8\"><style>"
+            + "*{box-sizing:border-box;margin:0;padding:0}"
+            + "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
+            +      "background:" + bg + ";color:" + text + ";max-width:920px;margin:0 auto;"
+            +      "padding:32px 44px;font-size:14px;line-height:1.6}"
+            + "h1{font-size:22px;font-weight:700;color:" + heading + ";margin-bottom:4px}"
+            + ".meta{color:" + muted + ";font-size:12px;margin-bottom:24px}"
+            + ".headline{background:" + surface + ";border-left:3px solid #22d3ee;"
+            +           "padding:12px 16px;border-radius:4px;margin-bottom:20px;"
+            +           "font-size:14px;display:flex;align-items:center;gap:10px}"
+            + ".vel-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;"
+            +            "white-space:nowrap;flex-shrink:0}"
+            + ".vel-elite{background:#065f46;color:#6ee7b7}"
+            + ".vel-high{background:#164e63;color:#67e8f9}"
+            + ".vel-strong{background:#1e3a5f;color:#93c5fd}"
+            + ".vel-steady{background:#3f3f46;color:#d4d4d8}"
+            + ".vel-quiet{background:#27272a;color:#71717a}"
+            + ".metrics-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}"
+            + ".metric{background:" + surface + ";border-radius:6px;padding:12px 16px;"
+            +         "flex:1;min-width:90px;text-align:center}"
+            + ".metric-value{font-size:22px;font-weight:700;color:#22d3ee}"
+            + ".metric-label{font-size:10px;color:" + muted + ";text-transform:uppercase;"
+            +               "letter-spacing:.06em;margin-top:2px}"
+            + ".score-elite{color:#6ee7b7}.score-strong{color:#93c5fd}"
+            + ".score-stable{color:#fcd34d}.score-stalled{color:#fca5a5}"
+            + "h2{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;"
+            +    "color:" + muted + ";border-top:1px solid " + border + ";padding-top:18px;"
+            +    "margin-top:18px;margin-bottom:10px}"
+            + ".task-row{display:flex;align-items:flex-start;gap:8px;"
+            +           "padding:7px 0;border-bottom:1px solid " + rowBorder + "}"
+            + ".task-row:last-child{border-bottom:none}"
+            + ".badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;"
+            +        "white-space:nowrap;flex-shrink:0}"
+            + ".p1{background:#7f1d1d;color:#fca5a5}"
+            + ".p2{background:#78350f;color:#fcd34d}"
+            + ".p3{background:" + p3bg + ";color:" + p3text + "}"
+            + ".icon-done{color:#4ade80;font-weight:bold;flex-shrink:0}"
+            + ".icon-wip{color:#60a5fa;flex-shrink:0}"
+            + ".icon-new{color:#a78bfa;flex-shrink:0}"
+            + ".icon-warn{color:#f87171;flex-shrink:0}"
+            + ".task-title{flex:1;color:" + taskTitle + "}"
+            + ".task-meta{font-size:11px;color:" + taskMeta + ";flex-shrink:0}"
+            + ".stale{color:#f87171}"
+            + ".insight-list{padding:0;list-style:none}"
+            + ".insight-list li{padding:5px 0;color:" + dim + ";font-size:13px}"
+            + ".insight-list li::before{content:'→ ';color:#22d3ee}"
+            + ".tag-row{display:flex;align-items:center;gap:10px;padding:4px 0}"
+            + ".tag-name{color:" + tagName + ";font-size:12px;width:110px;flex-shrink:0}"
+            + ".tag-bar-bg{background:" + border + ";border-radius:2px;flex:1;height:13px;max-width:280px}"
+            + ".tag-bar-fill{background:#3b82f6;height:13px;border-radius:2px}"
+            + ".tag-count{color:" + muted + ";font-size:12px;width:26px}"
+            + ".log-entry{color:" + dim + ";font-size:12px;padding:3px 0;font-family:monospace}"
+            + ".empty{color:" + taskMeta + ";font-style:italic;padding:8px 0;font-size:13px}"
+            + "</style></head><body>";
+    }
+
+    private String buildPlaceholderHead() {
+        boolean dark = ThemeManager.isDark();
+        String bg    = dark ? "#0f1117" : "#f8fafc";
+        String text  = dark ? "#64748b" : "#64748b";
+        String bold  = dark ? "#94a3b8" : "#475569";
+        return "<!DOCTYPE html>"
+            + "<html><head><meta charset=\"UTF-8\"><style>"
+            + "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
+            +      "background:" + bg + ";color:" + text + ";display:flex;align-items:center;"
+            +      "justify-content:center;height:100vh;margin:0;font-size:14px;text-align:center}"
+            + ".empty{line-height:1.8}"
+            + "b{color:" + bold + "}"
+            + "</style></head><body><div class='empty'>";
+    }
 }

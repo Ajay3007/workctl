@@ -1,6 +1,7 @@
 package com.workctl.core.model;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -58,6 +59,8 @@ public class Task {
     private List<String> tags;
     private int priority; // 1 = High, 2 = Medium, 3 = Low
     private LocalDate createdDate;
+    private LocalDate updatedDate;   // null until first modification after creation
+    private LocalDate completedDate; // null unless task reached DONE state
 
     // NEW field
     private List<SubTask> subtasks = new ArrayList<>();
@@ -135,8 +138,13 @@ public class Task {
         return priority;
     }
 
-    public LocalDate getCreatedDate() {
-        return createdDate;
+    public LocalDate getCreatedDate()   { return createdDate; }
+    public LocalDate getUpdatedDate()   { return updatedDate; }
+    public LocalDate getCompletedDate() { return completedDate; }
+
+    /** Days since creation (always ≥ 0). */
+    public long getDaysOld() {
+        return createdDate != null ? ChronoUnit.DAYS.between(createdDate, LocalDate.now()) : 0;
     }
 
     // NEW getters
@@ -170,9 +178,10 @@ public class Task {
         this.description = description != null ? description : "";
     }
 
-    public void setPriority(int priority) {
-        this.priority = priority;
-    }
+    public void setPriority(int priority)          { this.priority = priority; }
+    public void setCreatedDate(LocalDate date)     { this.createdDate = date; }
+    public void setUpdatedDate(LocalDate date)     { this.updatedDate = date; }
+    public void setCompletedDate(LocalDate date)   { this.completedDate = date; }
 
     // NEW setter
     public void setSubtasks(List<SubTask> subtasks) {

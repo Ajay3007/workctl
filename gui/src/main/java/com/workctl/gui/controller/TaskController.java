@@ -5,6 +5,7 @@ import com.workctl.core.model.Task.SubTask;
 import com.workctl.core.model.TaskStatus;
 import com.workctl.core.service.TaskService;
 import com.workctl.gui.ProjectContext;
+import com.workctl.gui.ThemeManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -17,6 +18,8 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -406,7 +409,35 @@ public class TaskController {
             -fx-font-weight: bold;
             """.formatted(badgeColor));
 
-        HBox metaRow = new HBox(6, idLabel, priorityBadge);
+        // =========================
+        // "X days old" age badge
+        // =========================
+        long daysOld = task.getDaysOld();
+        String ageText = daysOld + "d";
+
+        // Color: muted for done tasks; amber/red for aging open/in-progress tasks
+        String ageColor;
+        if (task.getStatus() == TaskStatus.DONE) {
+            ageColor = ThemeManager.isDark() ? "#4a5568" : "#94a3b8";
+        } else if (daysOld >= 14) {
+            ageColor = "#dc2626";   // red — very overdue
+        } else if (daysOld >= 7) {
+            ageColor = "#d97706";   // amber — aging
+        } else {
+            ageColor = ThemeManager.isDark() ? "#4a5568" : "#94a3b8";  // neutral
+        }
+
+        Label ageBadge = new Label(ageText);
+        ageBadge.setStyle("""
+            -fx-text-fill: %s;
+            -fx-font-size: 10;
+            -fx-font-weight: bold;
+            """.formatted(ageColor));
+
+        Region metaSpacer = new Region();
+        HBox.setHgrow(metaSpacer, Priority.ALWAYS);
+
+        HBox metaRow = new HBox(6, idLabel, priorityBadge, metaSpacer, ageBadge);
         metaRow.setAlignment(Pos.CENTER_LEFT);
 
         // =========================
@@ -456,6 +487,26 @@ public class TaskController {
             HBox.setHgrow(pb, Priority.ALWAYS);
             subRow.setAlignment(Pos.CENTER_LEFT);
             card.getChildren().add(subRow);
+        }
+
+        // =========================
+        // Overdue indicator (7+ days, non-done tasks)
+        // =========================
+        if (task.getStatus() != TaskStatus.DONE && daysOld >= 7) {
+            boolean veryOverdue = daysOld >= 14;
+            String overdueBg  = veryOverdue ? "#dc2626" : "#d97706";
+            String overdueMsg = (veryOverdue ? "⚠  " : "⏰  ") + daysOld + " days old";
+            Label overdueLabel = new Label(overdueMsg);
+            overdueLabel.setMaxWidth(Double.MAX_VALUE);
+            overdueLabel.setStyle("""
+                -fx-background-color: %s;
+                -fx-text-fill: white;
+                -fx-font-size: 9;
+                -fx-font-weight: bold;
+                -fx-padding: 2 6;
+                -fx-background-radius: 4;
+                """.formatted(overdueBg));
+            card.getChildren().add(overdueLabel);
         }
 
         // Hover is handled by .task-card:hover in CSS — no manual listeners needed.
@@ -736,6 +787,8 @@ public class TaskController {
                 case ESCAPE -> {
                     refreshBoard(); // Cancel edit
                 }
+
+                default -> { /* ignore other keys */ }
             }
         });
 
@@ -814,6 +867,13 @@ public class TaskController {
         Label createdLabel = new Label("Created: " + task.getCreatedDate());
 
         leftPanel.getChildren().addAll(header, statusLabel, priorityLabel, createdLabel);
+
+        if (task.getUpdatedDate() != null) {
+            leftPanel.getChildren().add(new Label("Updated:   " + task.getUpdatedDate()));
+        }
+        if (task.getCompletedDate() != null) {
+            leftPanel.getChildren().add(new Label("Completed: " + task.getCompletedDate()));
+        }
 
         // =========================
         // Subtask checklist in details

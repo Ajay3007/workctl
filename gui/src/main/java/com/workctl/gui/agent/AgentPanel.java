@@ -127,6 +127,7 @@ public class AgentPanel extends VBox {
 
         chatScroll = new ScrollPane(chatBox);
         chatScroll.setFitToWidth(true);
+        chatScroll.setMinHeight(0);   // allow VBox to bound its height so it scrolls
         chatScroll.getStyleClass().add("kanban-col-scroll");
         VBox.setVgrow(chatScroll, Priority.ALWAYS);
 
@@ -290,6 +291,19 @@ public class AgentPanel extends VBox {
                     } catch (Exception ignored) {}
                 });
             }
+        });
+
+        // Forward mouse-wheel scroll to chatScroll — WebView consumes scroll events
+        // by default, which prevents the chat list from scrolling via mouse wheel.
+        webView.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, event -> {
+            double delta     = event.getDeltaY();
+            double contentH  = chatBox.getBoundsInLocal().getHeight();
+            double viewportH = chatScroll.getViewportBounds().getHeight();
+            double range     = contentH - viewportH;
+            if (range > 0) {
+                chatScroll.setVvalue(chatScroll.getVvalue() - delta / range);
+            }
+            event.consume();
         });
 
         // Track for theme re-rendering on dark/light toggle

@@ -259,6 +259,90 @@
 .panel-status { -fx-text-fill: #718096; -fx-font-size: 11; }
 .panel-refresh { -fx-text-fill: #4a5568; -fx-font-size: 10; }
 
+/* ── Meeting cards (center tab) ───────────────────────────────── */
+.meeting-card {
+    -fx-background-color: #12141f;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     1;
+    -fx-border-radius:    8;
+    -fx-background-radius: 8;
+    -fx-cursor:           hand;
+    -fx-padding:          11 14 11 14;
+}
+.meeting-card:hover {
+    -fx-background-color: #1a1d2e;
+    -fx-border-color:     #3d4d5e;
+}
+.meeting-status-scheduled {
+    -fx-background-color: rgba(59, 130, 246, 0.18);
+    -fx-text-fill:        #60a5fa;
+    -fx-font-size:        10;
+    -fx-font-weight:      bold;
+    -fx-padding:          2 8;
+    -fx-background-radius: 10;
+}
+.meeting-status-done {
+    -fx-background-color: rgba(34, 197, 94, 0.15);
+    -fx-text-fill:        #4ade80;
+    -fx-font-size:        10;
+    -fx-font-weight:      bold;
+    -fx-padding:          2 8;
+    -fx-background-radius: 10;
+}
+
+/* ── Interview cards ──────────────────────────────────────────── */
+.interview-card {
+    -fx-background-color: #12141f;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     1;
+    -fx-border-radius:    8;
+    -fx-background-radius: 8;
+    -fx-cursor:           hand;
+    -fx-padding:          11 14 11 14;
+}
+.interview-card:hover {
+    -fx-background-color: #1a1d2e;
+    -fx-border-color:     #3d4d5e;
+}
+.interview-result-pending {
+    -fx-background-color: rgba(148, 163, 184, 0.15);
+    -fx-text-fill:        #94a3b8;
+    -fx-font-size:        10;
+    -fx-font-weight:      bold;
+    -fx-padding:          2 8;
+    -fx-background-radius: 10;
+}
+.interview-result-offered {
+    -fx-background-color: rgba(34, 197, 94, 0.15);
+    -fx-text-fill:        #4ade80;
+    -fx-font-size:        10;
+    -fx-font-weight:      bold;
+    -fx-padding:          2 8;
+    -fx-background-radius: 10;
+}
+.interview-result-rejected {
+    -fx-background-color: rgba(239, 68, 68, 0.15);
+    -fx-text-fill:        #f87171;
+    -fx-font-size:        10;
+    -fx-font-weight:      bold;
+    -fx-padding:          2 8;
+    -fx-background-radius: 10;
+}
+.interview-round-badge {
+    -fx-background-color: rgba(99, 179, 237, 0.15);
+    -fx-text-fill:        #63b3ed;
+    -fx-font-size:        10;
+    -fx-font-weight:      bold;
+    -fx-padding:          2 8;
+    -fx-background-radius: 10;
+}
+.prep-topic-category {
+    -fx-text-fill:        #f7fafc;
+    -fx-font-weight:      bold;
+    -fx-border-color:     #2d3748;
+    -fx-border-width:     0 0 1 0;
+}
+
 /* Weekly Report toolbar */
 .report-toolbar {
     -fx-background-color: #1a1d2e;

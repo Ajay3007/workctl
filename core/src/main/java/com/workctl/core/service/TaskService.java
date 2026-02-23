@@ -2,7 +2,6 @@ package com.workctl.core.service;
 
 import com.workctl.config.AppConfig;
 import com.workctl.config.ConfigManager;
-import com.workctl.core.model.ProjectInsights;
 import com.workctl.core.model.Task;
 import com.workctl.core.model.Task.SubTask;
 import com.workctl.core.model.TaskStatus;
@@ -67,14 +66,22 @@ public class TaskService {
             TaskStatus previousStatus = task.getStatus();
 
             task.setStatus(newStatus);
+            task.setUpdatedDate(LocalDate.now());
+            if (newStatus == TaskStatus.DONE) {
+                task.setCompletedDate(LocalDate.now());
+            } else if (previousStatus == TaskStatus.DONE) {
+                task.setCompletedDate(null); // clear when reopening
+            }
 
             if (newStatus == TaskStatus.IN_PROGRESS) {
-                autoLog(projectName, task, "started", previousStatus);
-            }
-
-            if (newStatus == TaskStatus.DONE) {
+                String action = (previousStatus == TaskStatus.DONE) ? "reopened" : "started";
+                autoLog(projectName, task, action, previousStatus);
+            } else if (newStatus == TaskStatus.DONE) {
                 autoLog(projectName, task, "completed", previousStatus);
+            } else if (newStatus == TaskStatus.OPEN && previousStatus == TaskStatus.DONE) {
+                autoLog(projectName, task, "reopened", previousStatus);
             }
+            // IN_PROGRESS → OPEN: no log (minor reversion, not a meaningful lifecycle event)
         });
     }
 
@@ -109,7 +116,9 @@ public class TaskService {
 
             List<String> lines = Files.readAllLines(tasksFile);
 
-            return parseTasks(lines);
+            TasksData data = parseTasks(lines);
+            backfillDatesFromLog(projectName, data.tasks);
+            return data;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load tasks", e);
@@ -158,17 +167,19 @@ public class TaskService {
         int nextId = 1;
         TaskStatus currentStatus = null;
 
-        Pattern nextIdPattern = Pattern.compile("NEXT_ID: (\\d+)");
-        Pattern taskPattern =
-                Pattern.compile("(\\d+)\\. \\[(.)\\](?: \\(P(\\d)\\))? (.+)");
-        Pattern metaPattern =
-                Pattern.compile("created=(\\d{4}-\\d{2}-\\d{2})");
+        Pattern nextIdPattern    = Pattern.compile("NEXT_ID: (\\d+)");
+        Pattern taskPattern      = Pattern.compile("(\\d+)\\. \\[(.)\\](?: \\(P(\\d)\\))? (.+)");
+        Pattern metaPattern      = Pattern.compile("created=(\\d{4}-\\d{2}-\\d{2})");
+        Pattern updatedPattern   = Pattern.compile("updated=(\\d{4}-\\d{2}-\\d{2})");
+        Pattern completedPattern = Pattern.compile("completed=(\\d{4}-\\d{2}-\\d{2})");
 
         Integer currentId = null;
         StringBuilder descriptionBuilder = null;
         TaskStatus currentTaskStatus = null;
         int currentPriority = 2;
-        LocalDate currentCreatedDate = LocalDate.now();
+        LocalDate currentCreatedDate   = LocalDate.now();
+        LocalDate currentUpdatedDate   = null;
+        LocalDate currentCompletedDate = null;
         // NEW: accumulate subtasks per task
         List<SubTask> currentSubtasks = new ArrayList<>();
 
@@ -191,9 +202,12 @@ public class TaskService {
                 if (currentId != null) {
                     tasks.add(buildTask(currentId, descriptionBuilder,
                             currentTaskStatus, currentPriority,
-                            currentCreatedDate, currentSubtasks));
+                            currentCreatedDate, currentUpdatedDate,
+                            currentCompletedDate, currentSubtasks));
                     currentId = null;
-                    currentSubtasks = new ArrayList<>();
+                    currentSubtasks     = new ArrayList<>();
+                    currentUpdatedDate   = null;
+                    currentCompletedDate = null;
                 }
                 String section = line.substring(3).trim();
                 currentStatus = switch (section) {
@@ -216,8 +230,11 @@ public class TaskService {
                 if (currentId != null) {
                     tasks.add(buildTask(currentId, descriptionBuilder,
                             currentTaskStatus, currentPriority,
-                            currentCreatedDate, currentSubtasks));
-                    currentSubtasks = new ArrayList<>();
+                            currentCreatedDate, currentUpdatedDate,
+                            currentCompletedDate, currentSubtasks));
+                    currentSubtasks     = new ArrayList<>();
+                    currentUpdatedDate   = null;
+                    currentCompletedDate = null;
                 }
 
                 currentId = Integer.parseInt(taskMatcher.group(1));
@@ -227,13 +244,22 @@ public class TaskService {
                         ? Integer.parseInt(priorityGroup)
                         : 2;
 
-                // Strip inline metadata from title — preserved from current code
-                String titlePart = taskMatcher.group(4).trim()
-                        .replaceAll("\\s*<!--.*?-->\\s*$", "").trim();
+                // Raw group 4 includes the inline metadata comment; strip it for title.
+                String rawGroup4  = taskMatcher.group(4).trim();
+                String titlePart  = rawGroup4.replaceAll("\\s*<!--.*?-->\\s*$", "").trim();
                 descriptionBuilder = new StringBuilder(titlePart);
 
                 currentTaskStatus = currentStatus;
-                currentCreatedDate = LocalDate.now(); // default
+
+                // Parse all three dates from the inline comment (e.g. <!-- created=... updated=... -->)
+                Matcher cm = metaPattern.matcher(rawGroup4);
+                currentCreatedDate   = cm.find() ? LocalDate.parse(cm.group(1)) : LocalDate.now();
+
+                Matcher um = updatedPattern.matcher(rawGroup4);
+                currentUpdatedDate   = um.find() ? LocalDate.parse(um.group(1)) : null;
+
+                Matcher dm = completedPattern.matcher(rawGroup4);
+                currentCompletedDate = dm.find() ? LocalDate.parse(dm.group(1)) : null;
 
                 continue;
             }
@@ -279,7 +305,8 @@ public class TaskService {
         if (currentId != null) {
             tasks.add(buildTask(currentId, descriptionBuilder,
                     currentTaskStatus, currentPriority,
-                    currentCreatedDate, currentSubtasks));
+                    currentCreatedDate, currentUpdatedDate,
+                    currentCompletedDate, currentSubtasks));
         }
 
         return new TasksData(tasks, nextId);
@@ -287,7 +314,9 @@ public class TaskService {
 
     /** Helper to construct a Task and attach its subtask list */
     private Task buildTask(int id, StringBuilder desc, TaskStatus status,
-                           int priority, LocalDate created, List<SubTask> subtasks) {
+                           int priority, LocalDate created,
+                           LocalDate updated, LocalDate completed,
+                           List<SubTask> subtasks) {
         Task t = new Task(
                 id,
                 desc != null ? desc.toString().trim() : "",
@@ -296,10 +325,86 @@ public class TaskService {
                 priority,
                 created
         );
+        t.setUpdatedDate(updated);
+        t.setCompletedDate(completed);
         t.setSubtasks(new ArrayList<>(subtasks));
         return t;
     }
 
+
+    /**
+     * Reads the project's work-log.md and, for any task whose logged "created"
+     * date is earlier than the currently-stored createdDate, replaces the
+     * createdDate with the log value.  This repairs tasks that had their date
+     * overwritten by the old parse-default-to-today bug.
+     *
+     * Runs on every load but is a fast, side-effect-free best-effort pass —
+     * it never throws and never writes to disk on its own.
+     */
+    private void backfillDatesFromLog(String projectName, List<Task> tasks) {
+        try {
+            Path logFile = getLogFilePath(projectName);
+            if (!Files.exists(logFile)) return;
+
+            List<String> logLines = Files.readAllLines(logFile);
+
+            Pattern idPattern     = Pattern.compile("id=(\\d+)");
+            Pattern actionPattern = Pattern.compile("action=(\\w+)");
+            Pattern datePattern   = Pattern.compile("date=(\\d{4}-\\d{2}-\\d{2})");
+
+            // Collect earliest "created" date per task ID from all log events
+            Map<Integer, LocalDate> createdDates = new HashMap<>();
+
+            boolean   inEvent     = false;
+            Integer   eventId     = null;
+            String    eventAction = null;
+            LocalDate eventDate   = null;
+
+            for (String line : logLines) {
+
+                if (line.contains("TASK_EVENT:")) {
+                    inEvent = true;
+                    eventId = null; eventAction = null; eventDate = null;
+                    continue;
+                }
+
+                if (!inEvent) continue;
+
+                // End-of-block marker
+                if (line.trim().startsWith("-->")) {
+                    if ("created".equals(eventAction) && eventId != null && eventDate != null) {
+                        createdDates.merge(eventId, eventDate,
+                                (existing, candidate) -> candidate.isBefore(existing) ? candidate : existing);
+                    }
+                    inEvent = false;
+                    continue;
+                }
+
+                Matcher idM = idPattern.matcher(line);
+                if (idM.find()) eventId = Integer.parseInt(idM.group(1));
+
+                Matcher actM = actionPattern.matcher(line);
+                if (actM.find()) eventAction = actM.group(1);
+
+                Matcher dateM = datePattern.matcher(line);
+                if (dateM.find()) eventDate = LocalDate.parse(dateM.group(1));
+            }
+
+            // Apply: use log date whenever it is earlier than the stored createdDate
+            for (Task task : tasks) {
+                LocalDate logDate = createdDates.get(task.getId());
+                if (logDate != null) {
+                    LocalDate stored = task.getCreatedDate();
+                    if (stored == null || logDate.isBefore(stored)) {
+                        task.setCreatedDate(logDate);
+                    }
+                }
+            }
+
+        } catch (Exception ignored) {
+            // Backfill is best-effort — never break normal task loading
+        }
+    }
 
     private void initializeFile(Path file, String projectName) throws IOException {
 
@@ -341,16 +446,22 @@ public class TaskService {
         StringBuilder sb = new StringBuilder();
 
         // ===== First Line (Single Source of Truth) =====
+        // Strip any pre-existing metadata comment from lines[0] (defensive de-dup)
+        String firstLine = lines[0].replaceAll("\\s*<!--.*?-->\\s*$", "").trim();
         sb.append(task.getId())
                 .append(". ")
                 .append(checkbox)
                 .append(" ")
                 .append(priorityLabel)
                 .append(" ")
-                .append(lines[0])
+                .append(firstLine)
                 .append("  <!-- created=")
-                .append(task.getCreatedDate())
-                .append(" -->");
+                .append(task.getCreatedDate());
+        if (task.getUpdatedDate() != null)
+            sb.append(" updated=").append(task.getUpdatedDate());
+        if (task.getCompletedDate() != null)
+            sb.append(" completed=").append(task.getCompletedDate());
+        sb.append(" -->");
 
         // ===== Remaining lines (indented description only) =====
         for (int i = 1; i < lines.length; i++) {
@@ -416,6 +527,8 @@ public class TaskService {
                         "Started Task #" + task.getId() + " – " + title;
                 case "completed" ->
                         "Completed Task #" + task.getId() + " – " + title;
+                case "reopened" ->
+                        "Reopened Task #" + task.getId() + " – " + title;
                 default ->
                         "Updated Task #" + task.getId();
             };
@@ -439,7 +552,7 @@ public class TaskService {
             );
 
             String section = switch (action) {
-                case "created", "started" -> "assigned";
+                case "created", "started", "reopened" -> "assigned";
                 case "completed" -> "done";
                 default -> "done";
             };
@@ -580,14 +693,22 @@ public class TaskService {
             TaskStatus previous = task.getStatus();
 
             task.setStatus(newStatus);
+            task.setUpdatedDate(LocalDate.now());
+            if (newStatus == TaskStatus.DONE) {
+                task.setCompletedDate(LocalDate.now());
+            } else if (previous == TaskStatus.DONE) {
+                task.setCompletedDate(null); // clear when reopening
+            }
 
             if (newStatus == TaskStatus.IN_PROGRESS) {
-                autoLog(projectName, task, "started", previous);
-            }
-
-            if (newStatus == TaskStatus.DONE) {
+                String action = (previous == TaskStatus.DONE) ? "reopened" : "started";
+                autoLog(projectName, task, action, previous);
+            } else if (newStatus == TaskStatus.DONE) {
                 autoLog(projectName, task, "completed", previous);
+            } else if (newStatus == TaskStatus.OPEN && previous == TaskStatus.DONE) {
+                autoLog(projectName, task, "reopened", previous);
             }
+            // IN_PROGRESS → OPEN: no log (minor reversion, not a meaningful lifecycle event)
         });
     }
 
@@ -608,11 +729,13 @@ public class TaskService {
                                   String newDescription) {
 
         modifyTasks(projectName, data -> {
-
             data.tasks.stream()
                     .filter(t -> t.getId() == taskId)
                     .findFirst()
-                    .ifPresent(t -> t.setDescription(newDescription));
+                    .ifPresent(t -> {
+                        t.setDescription(newDescription);
+                        t.setUpdatedDate(LocalDate.now());
+                    });
         });
     }
 
@@ -621,11 +744,13 @@ public class TaskService {
                                int newPriority) {
 
         modifyTasks(projectName, data -> {
-
             data.tasks.stream()
                     .filter(t -> t.getId() == taskId)
                     .findFirst()
-                    .ifPresent(t -> t.setPriority(newPriority));
+                    .ifPresent(t -> {
+                        t.setPriority(newPriority);
+                        t.setUpdatedDate(LocalDate.now());
+                    });
         });
     }
 
@@ -650,7 +775,10 @@ public class TaskService {
                 data.tasks.stream()
                         .filter(t -> t.getId() == taskId)
                         .findFirst()
-                        .ifPresent(t -> t.getSubtasks().add(new SubTask(title, false)))
+                        .ifPresent(t -> {
+                            t.getSubtasks().add(new SubTask(title, false));
+                            t.setUpdatedDate(LocalDate.now());
+                        })
         );
     }
 
@@ -665,8 +793,8 @@ public class TaskService {
                         .ifPresent(t -> {
                             List<SubTask> subs = t.getSubtasks();
                             if (subtaskIndex >= 0 && subtaskIndex < subs.size()) {
-                                SubTask s = subs.get(subtaskIndex);
-                                s.setDone(!s.isDone());
+                                subs.get(subtaskIndex).setDone(!subs.get(subtaskIndex).isDone());
+                                t.setUpdatedDate(LocalDate.now());
                             }
                         })
         );
@@ -681,7 +809,10 @@ public class TaskService {
                 data.tasks.stream()
                         .filter(t -> t.getId() == taskId)
                         .findFirst()
-                        .ifPresent(t -> t.setSubtasks(new ArrayList<>(subtasks)))
+                        .ifPresent(t -> {
+                            t.setSubtasks(new ArrayList<>(subtasks));
+                            t.setUpdatedDate(LocalDate.now());
+                        })
         );
     }
 
@@ -702,7 +833,10 @@ public class TaskService {
                 data.tasks.stream()
                         .filter(t -> t.getId() == taskId)
                         .findFirst()
-                        .ifPresent(t -> t.getSubtasks().remove(subtaskIndex))
+                        .ifPresent(t -> {
+                            t.getSubtasks().remove(subtaskIndex);
+                            t.setUpdatedDate(LocalDate.now());
+                        })
         );
         return true;
     }

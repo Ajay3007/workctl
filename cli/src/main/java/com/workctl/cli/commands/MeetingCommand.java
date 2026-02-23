@@ -27,7 +27,7 @@ public class MeetingCommand implements Runnable {
     @Override
     public void run() {
         try {
-            Meeting meeting = meetingService.createMeeting(projectId, title, LocalDateTime.now());
+            Meeting meeting = meetingService.createMeeting(title, LocalDateTime.now(), projectId);
             ConsolePrinter.success("Meeting created: " + title);
             ConsolePrinter.info("Meeting ID: " + meeting.getId());
         } catch (Exception e) {

@@ -2,7 +2,13 @@ package com.workctl.gui.controller;
 
 import com.workctl.config.AppConfig;
 import com.workctl.config.ConfigManager;
+import com.workctl.core.domain.Interview;
+import com.workctl.core.domain.Meeting;
 import com.workctl.core.domain.Project;
+import com.workctl.core.model.InterviewResult;
+import com.workctl.core.model.MeetingStatus;
+import com.workctl.core.service.InterviewService;
+import com.workctl.core.service.MeetingService;
 import com.workctl.core.service.ProjectService;
 import com.workctl.gui.ProjectContext;
 import com.workctl.gui.ThemeManager;
@@ -32,7 +38,21 @@ public class MainController {
     @FXML private Button  deleteProjectBtn;
     @FXML private Button  themeToggleBtn;
 
-    private final ProjectService projectService = new ProjectService();
+    // Meetings sidebar
+    @FXML private VBox    meetingListSidebarVBox;
+    @FXML private Label   meetingCountLabel;
+
+    // Interviews sidebar
+    @FXML private VBox    interviewListSidebarVBox;
+    @FXML private Label   interviewCountLabel;
+
+    // Injected controllers from fxml includes
+    @FXML private MeetingController   meetingsViewController;
+    @FXML private InterviewController interviewViewController;
+
+    private final ProjectService  projectService  = new ProjectService();
+    private final MeetingService  meetingService  = new MeetingService();
+    private final InterviewService interviewService = new InterviewService();
     private AgentPanel agentPanel;
 
     /** Currently selected project name (null = none). */
@@ -64,6 +84,18 @@ public class MainController {
 
             // ── Delete button: disabled until a card is selected ──
             deleteProjectBtn.setDisable(true);
+
+            // ── Wire MeetingController sidebar callback ────────────
+            if (meetingsViewController != null) {
+                meetingsViewController.setOnMeetingChanged(this::loadSidebarMeetings);
+            }
+            loadSidebarMeetings();
+
+            // ── Wire InterviewController sidebar callback ──────────
+            if (interviewViewController != null) {
+                interviewViewController.setOnInterviewChanged(this::loadSidebarInterviews);
+            }
+            loadSidebarInterviews();
 
             // ── Workspace watcher ─────────────────────────────────
             startWorkspaceWatcher();
@@ -376,6 +408,173 @@ public class MainController {
             lastProjectEventMs = 0;
             Platform.runLater(this::loadProjects);
         }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // MEETINGS SIDEBAR
+    // ════════════════════════════════════════════════════════════════
+
+    @FXML
+    public void handleCreateMeetingQuick() {
+        if (meetingsViewController != null) {
+            // Switch to Meetings tab, then open dialog
+            mainTabPane.getTabs().stream()
+                    .filter(t -> "Meetings".equals(t.getText()))
+                    .findFirst()
+                    .ifPresent(t -> mainTabPane.getSelectionModel().select(t));
+            meetingsViewController.showMeetingDialog(null);
+        }
+    }
+
+    /** Load compact meeting cards into the sidebar. */
+    private void loadSidebarMeetings() {
+        try {
+            java.util.List<Meeting> meetings = meetingService.listAllMeetings();
+
+            Platform.runLater(() -> {
+                if (meetingListSidebarVBox == null) return;
+                meetingListSidebarVBox.getChildren().clear();
+
+                if (meetingCountLabel != null) {
+                    int count = meetings.size();
+                    meetingCountLabel.setText(count + " meeting" + (count == 1 ? "" : "s"));
+                }
+
+                for (Meeting m : meetings) {
+                    meetingListSidebarVBox.getChildren().add(createSidebarMeetingCard(m));
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Node createSidebarMeetingCard(Meeting m) {
+        HBox card = new HBox(7);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.getStyleClass().add("project-card");
+
+        Label icon = new Label("\uD83D\uDCC5");   // 📅
+        icon.getStyleClass().add("project-card-icon");
+
+        VBox info = new VBox(1);
+        HBox.setHgrow(info, Priority.ALWAYS);
+
+        Label titleLbl = new Label(m.getTitle());
+        titleLbl.getStyleClass().add("project-card-name");
+        titleLbl.setStyle("-fx-font-weight: bold;");
+        titleLbl.setMaxWidth(Double.MAX_VALUE);
+
+        String dateStr = m.getDateTime() != null
+                ? m.getDateTime().toLocalDate().toString() : "—";
+        String proj    = m.getProjectId() != null ? "  ·  " + m.getProjectId() : "  ·  General";
+        Label  metaLbl = new Label(dateStr + proj);
+        metaLbl.setStyle("-fx-text-fill: #718096; -fx-font-size: 10;");
+
+        // Status dot
+        boolean sched = m.getStatus() == MeetingStatus.SCHEDULED;
+        Label statusDot = new Label(sched ? "●" : "✓");
+        statusDot.setStyle("-fx-text-fill: " + (sched ? "#3b82f6" : "#22c55e")
+                + "; -fx-font-size: 10;");
+
+        info.getChildren().addAll(titleLbl, metaLbl);
+        card.getChildren().addAll(icon, info, statusDot);
+
+        // Click: switch to Meetings tab and open dialog
+        card.setOnMouseClicked(e -> {
+            mainTabPane.getTabs().stream()
+                    .filter(t -> "Meetings".equals(t.getText()))
+                    .findFirst()
+                    .ifPresent(t -> mainTabPane.getSelectionModel().select(t));
+            if (meetingsViewController != null) {
+                meetingsViewController.showMeetingDialog(m);
+            }
+        });
+
+        return card;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // INTERVIEWS SIDEBAR
+    // ════════════════════════════════════════════════════════════════
+
+    @FXML
+    public void handleCreateInterviewQuick() {
+        // Switch to Interview tab, then open dialog
+        mainTabPane.getTabs().stream()
+                .filter(t -> "Interview".equals(t.getText()))
+                .findFirst()
+                .ifPresent(t -> mainTabPane.getSelectionModel().select(t));
+        if (interviewViewController != null) {
+            interviewViewController.showInterviewDialog(null);
+        }
+    }
+
+    private void loadSidebarInterviews() {
+        try {
+            java.util.List<Interview> interviews = interviewService.listAllInterviews();
+
+            Platform.runLater(() -> {
+                if (interviewListSidebarVBox == null) return;
+                interviewListSidebarVBox.getChildren().clear();
+
+                if (interviewCountLabel != null) {
+                    int count = interviews.size();
+                    interviewCountLabel.setText(count + " interview" + (count == 1 ? "" : "s"));
+                }
+
+                for (Interview iv : interviews) {
+                    interviewListSidebarVBox.getChildren().add(createSidebarInterviewCard(iv));
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Node createSidebarInterviewCard(Interview iv) {
+        HBox card = new HBox(7);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.getStyleClass().add("project-card");
+
+        Label icon = new Label("\uD83C\uDFAF");   // 🎯
+        icon.getStyleClass().add("project-card-icon");
+
+        VBox info = new VBox(1);
+        HBox.setHgrow(info, Priority.ALWAYS);
+
+        Label titleLbl = new Label(iv.getCompany() + "  \u2014  " + iv.getRole());
+        titleLbl.getStyleClass().add("project-card-name");
+        titleLbl.setStyle("-fx-font-weight: bold;");
+        titleLbl.setMaxWidth(Double.MAX_VALUE);
+
+        String dateStr = iv.getDate() != null ? iv.getDate().toString() : "\u2014";
+        Label  metaLbl = new Label(dateStr);
+        metaLbl.setStyle("-fx-text-fill: #718096; -fx-font-size: 10;");
+
+        // Result dot
+        boolean offered  = iv.getResult() == InterviewResult.OFFERED;
+        boolean rejected = iv.getResult() == InterviewResult.REJECTED;
+        Label resultDot = new Label(offered ? "\u2714" : (rejected ? "\u2716" : "\u23F3"));
+        resultDot.setStyle("-fx-text-fill: "
+                + (offered ? "#22c55e" : (rejected ? "#ef4444" : "#94a3b8"))
+                + "; -fx-font-size: 10;");
+
+        info.getChildren().addAll(titleLbl, metaLbl);
+        card.getChildren().addAll(icon, info, resultDot);
+
+        // Click: switch to Interview tab and open detail view
+        card.setOnMouseClicked(e -> {
+            mainTabPane.getTabs().stream()
+                    .filter(t -> "Interview".equals(t.getText()))
+                    .findFirst()
+                    .ifPresent(t -> mainTabPane.getSelectionModel().select(t));
+            if (interviewViewController != null) {
+                interviewViewController.showInterviewDetail(iv);
+            }
+        });
+
+        return card;
     }
 
     // ════════════════════════════════════════════════════════════════

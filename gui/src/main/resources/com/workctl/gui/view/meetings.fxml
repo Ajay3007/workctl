@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.workctl.gui.controller.MeetingController"
+      styleClass="kanban-root">
+
+    <!-- ── Toolbar ───────────────────────────────────────────────── -->
+    <HBox styleClass="panel-toolbar" spacing="10" alignment="CENTER_LEFT"
+          style="-fx-padding: 9 14;">
+
+        <Label text="Meetings" styleClass="panel-toolbar-title"/>
+
+        <Separator orientation="VERTICAL" style="-fx-padding: 0 4;"/>
+
+        <Label text="Project:" styleClass="panel-status"/>
+        <ComboBox fx:id="projectFilterCombo" prefWidth="148"
+                  promptText="All Projects"/>
+
+        <Label text="Status:" styleClass="panel-status"/>
+        <ComboBox fx:id="statusFilterCombo" prefWidth="108"
+                  promptText="All"/>
+
+        <Region HBox.hgrow="ALWAYS"/>
+
+        <Button fx:id="newMeetingBtn"
+                text="+ New Meeting"
+                styleClass="add-task-btn"
+                onAction="#handleNewMeeting"/>
+    </HBox>
+
+    <!-- ── Meeting list ──────────────────────────────────────────── -->
+    <ScrollPane VBox.vgrow="ALWAYS"
+                fitToWidth="true"
+                styleClass="kanban-col-scroll">
+        <VBox fx:id="meetingListVBox"
+              spacing="10"
+              style="-fx-padding: 14;"/>
+    </ScrollPane>
+
+</VBox>
