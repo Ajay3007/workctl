@@ -31,24 +31,35 @@ import javafx.scene.web.WebView;
 
 public class TaskController {
 
-    @FXML private VBox openColumn;
-    @FXML private VBox inProgressColumn;
-    @FXML private VBox doneColumn;
+    @FXML
+    private VBox openColumn;
+    @FXML
+    private VBox inProgressColumn;
+    @FXML
+    private VBox doneColumn;
 
-    @FXML private ScrollPane openScroll;
-    @FXML private ScrollPane inProgressScroll;
-    @FXML private ScrollPane doneScroll;
+    @FXML
+    private ScrollPane openScroll;
+    @FXML
+    private ScrollPane inProgressScroll;
+    @FXML
+    private ScrollPane doneScroll;
 
-    @FXML private Label openCountLabel;
-    @FXML private Label inProgressCountLabel;
-    @FXML private Label doneCountLabel;
+    @FXML
+    private Label openCountLabel;
+    @FXML
+    private Label inProgressCountLabel;
+    @FXML
+    private Label doneCountLabel;
 
     // Search bar (wired from tasks.fxml)
-    @FXML private TextField searchField;
-    @FXML private Button    clearSearchBtn;
+    @FXML
+    private TextField searchField;
+    @FXML
+    private Button clearSearchBtn;
 
-//    @FXML private TextArea taskInput;
-//    @FXML private ComboBox<Integer> priorityComboBox;
+    // @FXML private TextArea taskInput;
+    // @FXML private ComboBox<Integer> priorityComboBox;
 
     private final TaskService taskService = new TaskService();
     private String currentProject;
@@ -79,8 +90,8 @@ public class TaskController {
             refreshBoard();
         });
 
-//        priorityComboBox.getItems().addAll(1, 2, 3);
-//        priorityComboBox.setValue(2); // default medium priority
+        // priorityComboBox.getItems().addAll(1, 2, 3);
+        // priorityComboBox.setValue(2); // default medium priority
     }
 
     // ====================================================
@@ -89,7 +100,7 @@ public class TaskController {
 
     @FXML
     private void handleClearSearch() {
-        searchField.clear();   // listener fires → searchQuery = "" → refreshBoard()
+        searchField.clear(); // listener fires → searchQuery = "" → refreshBoard()
         searchField.requestFocus();
     }
 
@@ -114,11 +125,44 @@ public class TaskController {
 
                 int taskId = Integer.parseInt(db.getString());
 
+                // Fetch the task to check for subtasks
+                Optional<Task> draggedTaskOpt = taskService.getTask(currentProject, taskId);
+
+                if (draggedTaskOpt.isPresent()) {
+                    Task task = draggedTaskOpt.get();
+
+                    // Check if dropping to DONE and there are incomplete subtasks
+                    if (status == TaskStatus.DONE && task.hasSubtasks()) {
+                        long openSubtasks = task.getSubtasks().stream()
+                                .filter(st -> !st.isDone())
+                                .count();
+
+                        if (openSubtasks > 0) {
+                            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                            alert.setTitle("Incomplete Subtasks");
+                            alert.setHeaderText("Task #" + taskId + " has " + openSubtasks + " open subtask(s).");
+                            alert.setContentText("Are you sure you want to move it to Done?");
+
+                            ButtonType btnMove = new ButtonType("Move Anyway", ButtonBar.ButtonData.OK_DONE);
+                            ButtonType btnCancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+                            alert.getButtonTypes().setAll(btnMove, btnCancel);
+
+                            Optional<ButtonType> result = alert.showAndWait();
+                            if (result.isEmpty() || result.get() == btnCancel) {
+                                // User cancelled the move
+                                event.setDropCompleted(false);
+                                event.consume();
+                                return;
+                            }
+                        }
+                    }
+                }
+
                 taskService.updateStatus(
                         currentProject,
                         taskId,
-                        status
-                );
+                        status);
 
                 refreshBoard();
                 event.setDropCompleted(true);
@@ -133,7 +177,8 @@ public class TaskController {
     public void setProject(String projectName) {
         this.currentProject = projectName;
         // Reset search when switching projects
-        if (searchField != null) searchField.clear();
+        if (searchField != null)
+            searchField.clear();
         refreshBoard();
     }
 
@@ -144,20 +189,20 @@ public class TaskController {
     @FXML
     private void handleAddTask() {
 
-        if (currentProject == null) return;
+        if (currentProject == null)
+            return;
 
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Create New Task");
 
         dialog.getDialogPane().getButtonTypes().addAll(
                 ButtonType.OK,
-                ButtonType.CANCEL
-        );
+                ButtonType.CANCEL);
 
         // ---------- Editor ----------
         TextArea editor = new TextArea();
         editor.setWrapText(true);
-        editor.setPrefRowCount(12);   // slightly shorter to make room for subtask panel
+        editor.setPrefRowCount(12); // slightly shorter to make room for subtask panel
         editor.setPrefWidth(450);
 
         // ---------- Priority Dropdown ----------
@@ -180,11 +225,11 @@ public class TaskController {
 
         Button addSubBtn = new Button("+ Add");
         addSubBtn.setStyle("""
-            -fx-background-color: #3498db;
-            -fx-text-fill: white;
-            -fx-background-radius: 4;
-            -fx-padding: 4 10;
-            """);
+                -fx-background-color: #3498db;
+                -fx-text-fill: white;
+                -fx-background-radius: 4;
+                -fx-padding: 4 10;
+                """);
 
         Runnable doAddSubtask = () -> {
             String t = subtaskField.getText().trim();
@@ -217,23 +262,22 @@ public class TaskController {
         WebView preview = new WebView();
         preview.setPrefWidth(450);
 
-        org.commonmark.parser.Parser parser =
-                org.commonmark.parser.Parser.builder().build();
+        org.commonmark.parser.Parser parser = org.commonmark.parser.Parser.builder().build();
 
-        org.commonmark.renderer.html.HtmlRenderer renderer =
-                org.commonmark.renderer.html.HtmlRenderer.builder().build();
+        org.commonmark.renderer.html.HtmlRenderer renderer = org.commonmark.renderer.html.HtmlRenderer.builder()
+                .build();
 
         editor.textProperty().addListener((obs, oldText, newText) -> {
 
             String html = renderer.render(parser.parse(newText));
 
             preview.getEngine().loadContent("""
-            <html>
-            <body style="font-family: Arial; padding:10;">
-            %s
-            </body>
-            </html>
-            """.formatted(html));
+                    <html>
+                    <body style="font-family: Arial; padding:10;">
+                    %s
+                    </body>
+                    </html>
+                    """.formatted(html));
         });
 
         HBox container = new HBox(15.0, leftPanel, preview);
@@ -255,24 +299,21 @@ public class TaskController {
                         currentProject,
                         text,
                         List.of(),
-                        priority
-                );
+                        priority);
 
                 // Attach pending subtasks to the newly created task
                 if (!pendingSubtasks.isEmpty()) {
                     List<Task> all = taskService.getTasks(currentProject);
                     all.stream()
                             .max(Comparator.comparingInt(Task::getId))
-                            .ifPresent(newest ->
-                                    taskService.setSubtasks(currentProject,
-                                            newest.getId(), pendingSubtasks));
+                            .ifPresent(newest -> taskService.setSubtasks(currentProject,
+                                    newest.getId(), pendingSubtasks));
                 }
 
                 refreshBoard();
             }
         }
     }
-
 
     // ====================================================
     // REFRESH BOARD
@@ -298,13 +339,11 @@ public class TaskController {
                     .collect(Collectors.toList());
         }
 
-        Comparator<Task> comparator =
-                Comparator.comparingInt(Task::getPriority)  // P1 first
-                        .thenComparing(Task::getId, Comparator.reverseOrder());
+        Comparator<Task> comparator = Comparator.comparingInt(Task::getPriority) // P1 first
+                .thenComparing(Task::getId, Comparator.reverseOrder());
 
-        Map<TaskStatus, List<Task>> grouped =
-                tasks.stream()
-                        .collect(Collectors.groupingBy(Task::getStatus));
+        Map<TaskStatus, List<Task>> grouped = tasks.stream()
+                .collect(Collectors.groupingBy(Task::getStatus));
 
         openColumn.getChildren().setAll(
                 grouped.getOrDefault(TaskStatus.OPEN, List.of())
@@ -328,9 +367,9 @@ public class TaskController {
                         .toList());
 
         // Update column headers — show match count when filtering
-        int openCount     = grouped.getOrDefault(TaskStatus.OPEN, List.of()).size();
+        int openCount = grouped.getOrDefault(TaskStatus.OPEN, List.of()).size();
         int progressCount = grouped.getOrDefault(TaskStatus.IN_PROGRESS, List.of()).size();
-        int doneCount     = grouped.getOrDefault(TaskStatus.DONE, List.of()).size();
+        int doneCount = grouped.getOrDefault(TaskStatus.DONE, List.of()).size();
 
         if (searchQuery.isBlank()) {
             openCountLabel.setText("Open (" + openCount + ")");
@@ -339,7 +378,8 @@ public class TaskController {
         } else {
             // Show "Open (2 matches)" when filtering
             openCountLabel.setText("Open (" + openCount + " match" + (openCount == 1 ? "" : "es") + ")");
-            inProgressCountLabel.setText("In Progress (" + progressCount + " match" + (progressCount == 1 ? "" : "es") + ")");
+            inProgressCountLabel
+                    .setText("In Progress (" + progressCount + " match" + (progressCount == 1 ? "" : "es") + ")");
             doneCountLabel.setText("Done (" + doneCount + " match" + (doneCount == 1 ? "" : "es") + ")");
         }
     }
@@ -350,16 +390,19 @@ public class TaskController {
      */
     private boolean matchesSearch(Task task, String queryLower) {
         // Title / description
-        if (task.getDescription().toLowerCase().contains(queryLower)) return true;
+        if (task.getDescription().toLowerCase().contains(queryLower))
+            return true;
         // Tags
         if (task.getTags() != null) {
             for (String tag : task.getTags()) {
-                if (tag.toLowerCase().contains(queryLower)) return true;
+                if (tag.toLowerCase().contains(queryLower))
+                    return true;
             }
         }
         // Subtask titles
         for (SubTask st : task.getSubtasks()) {
-            if (st.getTitle().toLowerCase().contains(queryLower)) return true;
+            if (st.getTitle().toLowerCase().contains(queryLower))
+                return true;
         }
         return false;
     }
@@ -385,10 +428,22 @@ public class TaskController {
         String badgeColor;
 
         switch (task.getPriority()) {
-            case 1 -> { borderColor = "#e53935"; badgeColor = "#e53935"; }
-            case 2 -> { borderColor = "#fb8c00"; badgeColor = "#fb8c00"; }
-            case 3 -> { borderColor = "#43a047"; badgeColor = "#43a047"; }
-            default -> { borderColor = "#4a5568"; badgeColor = "#718096"; }
+            case 1 -> {
+                borderColor = "#e53935";
+                badgeColor = "#e53935";
+            }
+            case 2 -> {
+                borderColor = "#fb8c00";
+                badgeColor = "#fb8c00";
+            }
+            case 3 -> {
+                borderColor = "#43a047";
+                badgeColor = "#43a047";
+            }
+            default -> {
+                borderColor = "#4a5568";
+                badgeColor = "#718096";
+            }
         }
 
         card.setStyle("-fx-border-color: " + borderColor + ";");
@@ -401,13 +456,13 @@ public class TaskController {
 
         Label priorityBadge = new Label("P" + task.getPriority());
         priorityBadge.setStyle("""
-            -fx-background-color: %s;
-            -fx-text-fill: white;
-            -fx-padding: 2 7 2 7;
-            -fx-background-radius: 12;
-            -fx-font-size: 10;
-            -fx-font-weight: bold;
-            """.formatted(badgeColor));
+                -fx-background-color: %s;
+                -fx-text-fill: white;
+                -fx-padding: 2 7 2 7;
+                -fx-background-radius: 12;
+                -fx-font-size: 10;
+                -fx-font-weight: bold;
+                """.formatted(badgeColor));
 
         // =========================
         // "X days old" age badge
@@ -420,19 +475,19 @@ public class TaskController {
         if (task.getStatus() == TaskStatus.DONE) {
             ageColor = ThemeManager.isDark() ? "#4a5568" : "#94a3b8";
         } else if (daysOld >= 14) {
-            ageColor = "#dc2626";   // red — very overdue
+            ageColor = "#dc2626"; // red — very overdue
         } else if (daysOld >= 7) {
-            ageColor = "#d97706";   // amber — aging
+            ageColor = "#d97706"; // amber — aging
         } else {
-            ageColor = ThemeManager.isDark() ? "#4a5568" : "#94a3b8";  // neutral
+            ageColor = ThemeManager.isDark() ? "#4a5568" : "#94a3b8"; // neutral
         }
 
         Label ageBadge = new Label(ageText);
         ageBadge.setStyle("""
-            -fx-text-fill: %s;
-            -fx-font-size: 10;
-            -fx-font-weight: bold;
-            """.formatted(ageColor));
+                -fx-text-fill: %s;
+                -fx-font-size: 10;
+                -fx-font-weight: bold;
+                """.formatted(ageColor));
 
         Region metaSpacer = new Region();
         HBox.setHgrow(metaSpacer, Priority.ALWAYS);
@@ -472,7 +527,7 @@ public class TaskController {
         card.getChildren().addAll(metaRow, titleRow);
 
         if (task.hasSubtasks()) {
-            int done  = task.getDoneSubtaskCount();
+            int done = task.getDoneSubtaskCount();
             int total = task.getTotalSubtaskCount();
 
             ProgressBar pb = new ProgressBar((double) done / total);
@@ -494,18 +549,18 @@ public class TaskController {
         // =========================
         if (task.getStatus() != TaskStatus.DONE && daysOld >= 7) {
             boolean veryOverdue = daysOld >= 14;
-            String overdueBg  = veryOverdue ? "#dc2626" : "#d97706";
+            String overdueBg = veryOverdue ? "#dc2626" : "#d97706";
             String overdueMsg = (veryOverdue ? "⚠  " : "⏰  ") + daysOld + " days old";
             Label overdueLabel = new Label(overdueMsg);
             overdueLabel.setMaxWidth(Double.MAX_VALUE);
             overdueLabel.setStyle("""
-                -fx-background-color: %s;
-                -fx-text-fill: white;
-                -fx-font-size: 9;
-                -fx-font-weight: bold;
-                -fx-padding: 2 6;
-                -fx-background-radius: 4;
-                """.formatted(overdueBg));
+                    -fx-background-color: %s;
+                    -fx-text-fill: white;
+                    -fx-font-size: 9;
+                    -fx-font-weight: bold;
+                    -fx-padding: 2 6;
+                    -fx-background-radius: 4;
+                    """.formatted(overdueBg));
             card.getChildren().add(overdueLabel);
         }
 
@@ -515,7 +570,8 @@ public class TaskController {
         // Click Handling — ORIGINAL UNCHANGED
         // =========================
         card.setOnMouseClicked(e -> {
-            if (e.getButton() != MouseButton.PRIMARY) return;
+            if (e.getButton() != MouseButton.PRIMARY)
+                return;
             if (e.getClickCount() == 1) {
                 highlightCard(card);
             }
@@ -549,11 +605,11 @@ public class TaskController {
 
         priorityMenu.getItems().addAll(p1, p2, p3);
 
-        MenuItem addSubtaskItem    = new MenuItem("➕  Add Subtask");
+        MenuItem addSubtaskItem = new MenuItem("➕  Add Subtask");
         MenuItem manageSubtaskItem = new MenuItem("📋  Manage Subtasks"
                 + (task.hasSubtasks() ? " (" + task.getTotalSubtaskCount() + ")" : ""));
 
-        addSubtaskItem.setOnAction(e    -> showQuickAddSubtaskDialog(task));
+        addSubtaskItem.setOnAction(e -> showQuickAddSubtaskDialog(task));
         manageSubtaskItem.setOnAction(e -> showManageSubtasksDialog(task));
 
         menu.getItems().addAll(
@@ -564,11 +620,9 @@ public class TaskController {
                 priorityMenu,
                 new SeparatorMenuItem(),
                 addSubtaskItem,
-                manageSubtaskItem
-        );
+                manageSubtaskItem);
 
-        card.setOnContextMenuRequested(e ->
-                menu.show(card, e.getScreenX(), e.getScreenY()));
+        card.setOnContextMenuRequested(e -> menu.show(card, e.getScreenX(), e.getScreenY()));
 
         // =========================
         // Drag & Drop — ORIGINAL UNCHANGED
@@ -605,8 +659,7 @@ public class TaskController {
         // Disable OK until user types something
         Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
         okBtn.setDisable(true);
-        inputField.textProperty().addListener((obs, o, n) ->
-                okBtn.setDisable(n.trim().isEmpty()));
+        inputField.textProperty().addListener((obs, o, n) -> okBtn.setDisable(n.trim().isEmpty()));
 
         Platform.runLater(inputField::requestFocus);
 
@@ -640,11 +693,11 @@ public class TaskController {
 
         Button addBtn = new Button("+ Add");
         addBtn.setStyle("""
-            -fx-background-color: #3498db;
-            -fx-text-fill: white;
-            -fx-background-radius: 4;
-            -fx-padding: 4 10;
-            """);
+                -fx-background-color: #3498db;
+                -fx-text-fill: white;
+                -fx-background-radius: 4;
+                -fx-padding: 4 10;
+                """);
 
         Runnable doAdd = () -> {
             String t = inputField.getText().trim();
@@ -693,13 +746,14 @@ public class TaskController {
         }
         for (int i = 0; i < list.size(); i++) {
             final int idx = i;
-            SubTask st    = list.get(i);
+            SubTask st = list.get(i);
 
             CheckBox cb = new CheckBox(st.getTitle());
             cb.setSelected(st.isDone());
             cb.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(cb, Priority.ALWAYS);
-            if (st.isDone()) cb.setStyle("-fx-text-fill: #aaa;");
+            if (st.isDone())
+                cb.setStyle("-fx-text-fill: #aaa;");
 
             // Toggle done state in the working list (no disk write yet)
             cb.selectedProperty().addListener((obs, o, n) -> {
@@ -709,12 +763,12 @@ public class TaskController {
 
             Button delBtn = new Button("✕");
             delBtn.setStyle("""
-                -fx-background-color: transparent;
-                -fx-text-fill: #e74c3c;
-                -fx-font-size: 11;
-                -fx-padding: 2 6;
-                -fx-cursor: hand;
-                """);
+                    -fx-background-color: transparent;
+                    -fx-text-fill: #e74c3c;
+                    -fx-font-size: 11;
+                    -fx-padding: 2 6;
+                    -fx-cursor: hand;
+                    """);
             delBtn.setOnAction(e -> {
                 list.remove(idx);
                 rebuildSubtaskListBox(box, list);
@@ -735,12 +789,10 @@ public class TaskController {
         taskService.updatePriority(
                 currentProject,
                 task.getId(),
-                newPriority
-        );
+                newPriority);
 
         refreshBoard();
     }
-
 
     private void highlightCard(VBox card) {
         // Simply refresh — the hover state handles visual feedback in dark theme
@@ -777,8 +829,7 @@ public class TaskController {
                         taskService.updateDescription(
                                 currentProject,
                                 task.getId(),
-                                newText
-                        );
+                                newText);
                     }
 
                     refreshBoard();
@@ -788,7 +839,8 @@ public class TaskController {
                     refreshBoard(); // Cancel edit
                 }
 
-                default -> { /* ignore other keys */ }
+                default -> {
+                    /* ignore other keys */ }
             }
         });
 
@@ -800,8 +852,7 @@ public class TaskController {
                     taskService.updateDescription(
                             currentProject,
                             task.getId(),
-                            newText
-                    );
+                            newText);
                 }
                 refreshBoard();
             }
@@ -810,11 +861,35 @@ public class TaskController {
 
     private void moveTask(Task task, TaskStatus newStatus) {
 
+        // Check if moving to DONE and there are incomplete subtasks
+        if (newStatus == TaskStatus.DONE && task.hasSubtasks()) {
+            long openSubtasks = task.getSubtasks().stream()
+                    .filter(st -> !st.isDone())
+                    .count();
+
+            if (openSubtasks > 0) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Incomplete Subtasks");
+                alert.setHeaderText("Task #" + task.getId() + " has " + openSubtasks + " open subtask(s).");
+                alert.setContentText("Are you sure you want to move it to Done?");
+
+                ButtonType btnMove = new ButtonType("Move Anyway", ButtonBar.ButtonData.OK_DONE);
+                ButtonType btnCancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+                alert.getButtonTypes().setAll(btnMove, btnCancel);
+
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.isEmpty() || result.get() == btnCancel) {
+                    // User cancelled the move
+                    return;
+                }
+            }
+        }
+
         taskService.updateStatus(
                 currentProject,
                 task.getId(),
-                newStatus
-        );
+                newStatus);
 
         refreshBoard();
     }
@@ -822,7 +897,7 @@ public class TaskController {
     // ====================================================
     // DETAILS POPUP
     // FIX: Markdown preview now includes subtasks as a
-    //      checklist and is selectable/copyable.
+    // checklist and is selectable/copyable.
     // ====================================================
 
     private void showTaskDetails(Task task) {
@@ -844,10 +919,10 @@ public class TaskController {
 
         Label header = new Label("#" + task.getId());
         header.setStyle("""
-        -fx-font-size: 24;
-        -fx-font-weight: bold;
-        -fx-text-fill: #2c3e50;
-    """);
+                    -fx-font-size: 24;
+                    -fx-font-weight: bold;
+                    -fx-text-fill: #2c3e50;
+                """);
 
         Label statusLabel = new Label("Status: " + task.getStatus());
 
@@ -858,11 +933,11 @@ public class TaskController {
             default -> "#43a047";
         };
         priorityLabel.setStyle("""
-        -fx-background-color: %s;
-        -fx-text-fill: white;
-        -fx-padding: 4 10;
-        -fx-background-radius: 12;
-    """.formatted(color));
+                    -fx-background-color: %s;
+                    -fx-text-fill: white;
+                    -fx-padding: 4 10;
+                    -fx-background-radius: 12;
+                """.formatted(color));
 
         Label createdLabel = new Label("Created: " + task.getCreatedDate());
 
@@ -879,7 +954,7 @@ public class TaskController {
         // Subtask checklist in details
         // =========================
         if (task.hasSubtasks()) {
-            int done  = task.getDoneSubtaskCount();
+            int done = task.getDoneSubtaskCount();
             int total = task.getTotalSubtaskCount();
 
             Separator sep = new Separator();
@@ -895,10 +970,11 @@ public class TaskController {
             List<SubTask> subtasks = task.getSubtasks();
             for (int i = 0; i < subtasks.size(); i++) {
                 final int idx = i;
-                SubTask st    = subtasks.get(i);
-                CheckBox cb   = new CheckBox(st.getTitle());
+                SubTask st = subtasks.get(i);
+                CheckBox cb = new CheckBox(st.getTitle());
                 cb.setSelected(st.isDone());
-                if (st.isDone()) cb.setStyle("-fx-text-fill: #aaa;");
+                if (st.isDone())
+                    cb.setStyle("-fx-text-fill: #aaa;");
                 // Clicking writes to disk then closes (card re-renders with new progress)
                 cb.setOnAction(e -> {
                     taskService.toggleSubtask(currentProject, task.getId(), idx);
@@ -914,21 +990,20 @@ public class TaskController {
         // =========================
         // RIGHT PANEL — Markdown preview
         // FIX 1: Subtasks are appended to the markdown so they
-        //         render as a checklist in the WebView.
+        // render as a checklist in the WebView.
         // FIX 2: CSS makes all text selectable and copyable.
         // =========================
         WebView preview = new WebView();
-        preview.setContextMenuEnabled(true);   // right-click → Copy in WebView
+        preview.setContextMenuEnabled(true); // right-click → Copy in WebView
 
-        org.commonmark.parser.Parser mdParser =
-                org.commonmark.parser.Parser.builder().build();
+        org.commonmark.parser.Parser mdParser = org.commonmark.parser.Parser.builder().build();
 
-        org.commonmark.renderer.html.HtmlRenderer mdRenderer =
-                org.commonmark.renderer.html.HtmlRenderer.builder().build();
+        org.commonmark.renderer.html.HtmlRenderer mdRenderer = org.commonmark.renderer.html.HtmlRenderer.builder()
+                .build();
 
         // Build the full markdown — description + subtask checklist
         String fullMarkdown = buildTaskMarkdownForPreview(task);
-        String bodyHtml     = mdRenderer.render(mdParser.parse(fullMarkdown));
+        String bodyHtml = mdRenderer.render(mdParser.parse(fullMarkdown));
 
         preview.getEngine().loadContent(buildSelectableHtml(bodyHtml));
 
@@ -972,7 +1047,8 @@ public class TaskController {
                 .replaceAll("<!--.*?-->", "")
                 .trim();
 
-        if (!task.hasSubtasks()) return desc;
+        if (!task.hasSubtasks())
+            return desc;
 
         StringBuilder sb = new StringBuilder(desc);
         sb.append("\n\n---\n\n**Subtasks**\n\n");
@@ -986,62 +1062,62 @@ public class TaskController {
 
     /**
      * Wrap rendered HTML in a full page with:
-     *  - Readable typography matching the app style
-     *  - user-select: text so content is selectable and copyable
+     * - Readable typography matching the app style
+     * - user-select: text so content is selectable and copyable
      */
     private String buildSelectableHtml(String bodyHtml) {
         return """
-        <html>
-        <head>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                font-size: 14px;
-                line-height: 1.6;
-                color: #2c3e50;
-                padding: 20px;
-                margin: 0;
-                /* FIX: make all text selectable */
-                -webkit-user-select: text;
-                user-select: text;
-            }
-            h1, h2, h3 { color: #2c3e50; }
-            hr { border: none; border-top: 1px solid #dee2e6; margin: 14px 0; }
-            ul { padding-left: 20px; }
-            li { margin: 4px 0; }
-            /* Style task-list checkboxes rendered by commonmark */
-            li input[type=checkbox] {
-                margin-right: 6px;
-                pointer-events: none;   /* view-only — toggling is done in left panel */
-            }
-            code {
-                background: #f4f6f7;
-                padding: 2px 5px;
-                border-radius: 3px;
-                font-family: Consolas, monospace;
-                font-size: 12px;
-            }
-            strong { color: #1a252f; }
-            blockquote {
-                border-left: 3px solid #3498db;
-                margin: 0;
-                padding: 6px 14px;
-                background: #eaf4fb;
-                color: #1a5276;
-            }
-        </style>
-        </head>
-        <body>
-        %s
-        </body>
-        </html>
-        """.formatted(bodyHtml);
+                <html>
+                <head>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        font-size: 14px;
+                        line-height: 1.6;
+                        color: #2c3e50;
+                        padding: 20px;
+                        margin: 0;
+                        /* FIX: make all text selectable */
+                        -webkit-user-select: text;
+                        user-select: text;
+                    }
+                    h1, h2, h3 { color: #2c3e50; }
+                    hr { border: none; border-top: 1px solid #dee2e6; margin: 14px 0; }
+                    ul { padding-left: 20px; }
+                    li { margin: 4px 0; }
+                    /* Style task-list checkboxes rendered by commonmark */
+                    li input[type=checkbox] {
+                        margin-right: 6px;
+                        pointer-events: none;   /* view-only — toggling is done in left panel */
+                    }
+                    code {
+                        background: #f4f6f7;
+                        padding: 2px 5px;
+                        border-radius: 3px;
+                        font-family: Consolas, monospace;
+                        font-size: 12px;
+                    }
+                    strong { color: #1a252f; }
+                    blockquote {
+                        border-left: 3px solid #3498db;
+                        margin: 0;
+                        padding: 6px 14px;
+                        background: #eaf4fb;
+                        color: #1a5276;
+                    }
+                </style>
+                </head>
+                <body>
+                %s
+                </body>
+                </html>
+                """.formatted(bodyHtml);
     }
 
     // ====================================================
     // UPDATE TASK DIALOG
     // FIX: now includes a subtask editor panel alongside
-    //      the description TextArea.
+    // the description TextArea.
     // ====================================================
 
     private void showUpdateDialog(Task task) {
@@ -1051,8 +1127,7 @@ public class TaskController {
 
         dialog.getDialogPane().getButtonTypes().addAll(
                 ButtonType.OK,
-                ButtonType.CANCEL
-        );
+                ButtonType.CANCEL);
 
         // ── Description editor — ORIGINAL fix preserved (strip metadata) ──
         String cleanDescription = task.getDescription()
@@ -1073,11 +1148,11 @@ public class TaskController {
 
         Button addSubBtn = new Button("+ Add");
         addSubBtn.setStyle("""
-            -fx-background-color: #3498db;
-            -fx-text-fill: white;
-            -fx-background-radius: 4;
-            -fx-padding: 4 10;
-            """);
+                -fx-background-color: #3498db;
+                -fx-text-fill: white;
+                -fx-background-radius: 4;
+                -fx-padding: 4 10;
+                """);
 
         Runnable doAddSub = () -> {
             String t = subtaskField.getText().trim();
@@ -1122,10 +1197,9 @@ public class TaskController {
         WebView preview = new WebView();
         preview.setPrefWidth(420);
 
-        org.commonmark.parser.Parser mdParser =
-                org.commonmark.parser.Parser.builder().build();
-        org.commonmark.renderer.html.HtmlRenderer mdRenderer =
-                org.commonmark.renderer.html.HtmlRenderer.builder().build();
+        org.commonmark.parser.Parser mdParser = org.commonmark.parser.Parser.builder().build();
+        org.commonmark.renderer.html.HtmlRenderer mdRenderer = org.commonmark.renderer.html.HtmlRenderer.builder()
+                .build();
 
         editor.textProperty().addListener((obs, oldText, newText) -> {
             String html = mdRenderer.render(mdParser.parse(newText));
@@ -1180,6 +1254,5 @@ public class TaskController {
             refreshBoard();
         }
     }
-
 
 }

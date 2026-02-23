@@ -29,6 +29,8 @@
                         styleClass="new-project-btn"/>
             </VBox>
 
+
+
             <!-- ── Project card list ── -->
             <ScrollPane fx:id="projectScroll"
                         styleClass="project-scroll"
@@ -48,62 +50,6 @@
                         maxWidth="Infinity"
                         styleClass="delete-project-btn"/>
             </VBox>
-
-            <!-- ════════════════════════════════════════════════ -->
-            <!-- ── Meetings section ── -->
-            <!-- ════════════════════════════════════════════════ -->
-            <Separator/>
-
-            <!-- Meetings header -->
-            <HBox styleClass="sidebar-header" alignment="CENTER_LEFT" spacing="6"
-                  style="-fx-padding: 10 14 8 14;">
-                <Label text="Meetings" styleClass="sidebar-title"/>
-                <Label fx:id="meetingCountLabel" text="" styleClass="sidebar-count"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Button text="+"
-                        styleClass="theme-toggle"
-                        onAction="#handleCreateMeetingQuick"
-                        style="-fx-font-size: 16; -fx-font-weight: bold;"/>
-            </HBox>
-
-            <!-- Meeting card list (compact, fixed height) -->
-            <ScrollPane fx:id="meetingScroll"
-                        styleClass="project-scroll"
-                        prefHeight="165"
-                        fitToWidth="true"
-                        hbarPolicy="NEVER">
-                <VBox fx:id="meetingListSidebarVBox"
-                      spacing="4"
-                      style="-fx-padding: 0 8 6 8;"/>
-            </ScrollPane>
-
-            <!-- ════════════════════════════════════════════════ -->
-            <!-- ── Interviews section ── -->
-            <!-- ════════════════════════════════════════════════ -->
-            <Separator/>
-
-            <!-- Interviews header -->
-            <HBox styleClass="sidebar-header" alignment="CENTER_LEFT" spacing="6"
-                  style="-fx-padding: 10 14 8 14;">
-                <Label text="Interviews" styleClass="sidebar-title"/>
-                <Label fx:id="interviewCountLabel" text="" styleClass="sidebar-count"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Button text="+"
-                        styleClass="theme-toggle"
-                        onAction="#handleCreateInterviewQuick"
-                        style="-fx-font-size: 16; -fx-font-weight: bold;"/>
-            </HBox>
-
-            <!-- Interview card list (compact, fixed height) -->
-            <ScrollPane fx:id="interviewScroll"
-                        styleClass="project-scroll"
-                        prefHeight="150"
-                        fitToWidth="true"
-                        hbarPolicy="NEVER">
-                <VBox fx:id="interviewListSidebarVBox"
-                      spacing="4"
-                      style="-fx-padding: 0 8 6 8;"/>
-            </ScrollPane>
 
         </VBox>
     </left>

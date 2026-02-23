@@ -39,27 +39,26 @@
                 </VBox>
             </Tab>
 
-            <!-- ── Prep Topics tab ── -->
-            <Tab text="Prep Topics" closable="false">
+            <!-- ── Preparation tab ── -->
+            <Tab fx:id="prepTab" text="Preparation" closable="false">
                 <VBox>
                     <!-- Toolbar -->
                     <HBox styleClass="kanban-toolbar" alignment="CENTER_LEFT" spacing="10"
                           style="-fx-padding: 8 14;">
-                        <Label text="Category:" style="-fx-font-size: 12;"/>
-                        <ComboBox fx:id="categoryFilterCombo" prefWidth="150"/>
+                        <Label fx:id="prepTitleLabel" text="Please select an Interview to prepare." style="-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
                         <Region HBox.hgrow="ALWAYS"/>
-                        <Button fx:id="addTopicBtn"
-                                text="+ Add Topic"
+                        <Button fx:id="addQuestionBtn"
+                                text="+ Add Question"
                                 styleClass="add-task-btn"
-                                onAction="#handleAddTopic"/>
+                                onAction="#handleAddQuestion"/>
                     </HBox>
 
-                    <!-- Prep topics list -->
+                    <!-- Prep questions list -->
                     <ScrollPane styleClass="kanban-col-scroll"
                                 VBox.vgrow="ALWAYS"
                                 fitToWidth="true"
                                 hbarPolicy="NEVER">
-                        <VBox fx:id="prepTopicsVBox"
+                        <VBox fx:id="prepQuestionsVBox"
                               spacing="6"
                               style="-fx-padding: 14;"/>
                     </ScrollPane>

@@ -7,11 +7,10 @@ import com.workctl.core.domain.PrepTopic;
 import com.workctl.core.model.InterviewResult;
 import com.workctl.core.model.InterviewRound;
 import com.workctl.core.service.InterviewService;
-import com.workctl.core.service.PrepTopicService;
 import javafx.application.Platform;
-import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -27,26 +26,37 @@ import java.util.*;
 
 public class InterviewController {
 
-    @FXML private ComboBox<String> roundFilterCombo;
-    @FXML private ComboBox<String> resultFilterCombo;
-    @FXML private VBox             interviewListVBox;
+    @FXML
+    private ComboBox<String> roundFilterCombo;
+    @FXML
+    private ComboBox<String> resultFilterCombo;
+    @FXML
+    private VBox interviewListVBox;
 
-    @FXML private ComboBox<String> categoryFilterCombo;
-    @FXML private VBox             prepTopicsVBox;
+    @FXML
+    private TabPane interviewTabPane;
+    @FXML
+    private Tab prepTab;
+    @FXML
+    private Label prepTitleLabel;
+    @FXML
+    private Button addQuestionBtn;
+    @FXML
+    private VBox prepQuestionsVBox;
 
     private final InterviewService interviewService = new InterviewService();
-    private final PrepTopicService prepTopicService = new PrepTopicService();
+
+    private Interview selectedPrepInterview;
 
     private Runnable onInterviewChanged;
 
-    private static final DateTimeFormatter CARD_DATE_FMT =
-            DateTimeFormatter.ofPattern("MMM d, yyyy");
+    private static final DateTimeFormatter CARD_DATE_FMT = DateTimeFormatter.ofPattern("MMM d, yyyy");
 
     // Default topic categories and question sections
-    private static final List<String> DEFAULT_CATEGORIES =
-            List.of("DSA", "System Design", "OS", "Networking", "Behavioral", "Language/Framework");
-    private static final List<String> DEFAULT_SECTIONS =
-            List.of("DSA", "System Design", "OS", "Networking", "Behavioral", "Other");
+    private static final List<String> DEFAULT_CATEGORIES = List.of("DSA", "System Design", "OS", "Networking",
+            "OOPS", "Behavioral", "Language/Framework", "Other");
+    private static final List<String> DEFAULT_SECTIONS = List.of("DSA", "System Design", "OS", "Networking",
+            "OOPS", "Behavioral", "Other");
 
     // ─────────────────────────────────────────────────────────────────
     // INIT
@@ -56,7 +66,8 @@ public class InterviewController {
     public void initialize() {
         // Round filter
         roundFilterCombo.getItems().add("All Rounds");
-        for (InterviewRound r : InterviewRound.values()) roundFilterCombo.getItems().add(r.label());
+        for (InterviewRound r : InterviewRound.values())
+            roundFilterCombo.getItems().add(r.label());
         roundFilterCombo.setValue("All Rounds");
         roundFilterCombo.setOnAction(e -> refreshInterviews());
 
@@ -65,19 +76,18 @@ public class InterviewController {
         resultFilterCombo.setValue("All Results");
         resultFilterCombo.setOnAction(e -> refreshInterviews());
 
-        // Category filter for Prep Topics
-        categoryFilterCombo.getItems().add("All Categories");
-        categoryFilterCombo.getItems().addAll(DEFAULT_CATEGORIES);
-        categoryFilterCombo.setValue("All Categories");
-        categoryFilterCombo.setOnAction(e -> refreshPrepTopics());
-
         refreshInterviews();
-        refreshPrepTopics();
+        // refreshPrepTopics(); // removed until implemented
     }
 
-    public void setOnInterviewChanged(Runnable callback) { this.onInterviewChanged = callback; }
+    public void setOnInterviewChanged(Runnable callback) {
+        this.onInterviewChanged = callback;
+    }
 
-    public void refresh() { refreshInterviews(); refreshPrepTopics(); }
+    public void refresh() {
+        refreshInterviews();
+        refreshPreparationTab();
+    }
 
     // ─────────────────────────────────────────────────────────────────
     // INTERVIEWS LIST
@@ -98,9 +108,9 @@ public class InterviewController {
             String resultFilter = resultFilterCombo.getValue();
             if (resultFilter != null && !resultFilter.equals("All Results")) {
                 InterviewResult wanted = switch (resultFilter) {
-                    case "Offered"  -> InterviewResult.OFFERED;
+                    case "Offered" -> InterviewResult.OFFERED;
                     case "Rejected" -> InterviewResult.REJECTED;
-                    default         -> InterviewResult.PENDING;
+                    default -> InterviewResult.PENDING;
                 };
                 interviews = interviews.stream().filter(iv -> iv.getResult() == wanted).toList();
             }
@@ -114,8 +124,11 @@ public class InterviewController {
                 return;
             }
 
-            for (Interview iv : interviews) interviewListVBox.getChildren().add(buildInterviewCard(iv));
-        } catch (Exception e) { e.printStackTrace(); }
+            for (Interview iv : interviews)
+                interviewListVBox.getChildren().add(buildInterviewCard(iv));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -131,26 +144,46 @@ public class InterviewController {
         topRow.setAlignment(Pos.CENTER_LEFT);
 
         Label companyLabel = new Label(iv.getCompany());
-        companyLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13;");
+        companyLabel.getStyleClass().add("interview-card-title");
 
-        Label sep  = new Label("\u00B7");
+        Label sep = new Label("\u00B7");
         sep.setStyle("-fx-text-fill: #718096;");
 
         Label roleLabel = new Label(iv.getRole());
-        roleLabel.setStyle("-fx-font-size: 12;");
+        roleLabel.getStyleClass().add("interview-card-role");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        topRow.getChildren().addAll(companyLabel, sep, roleLabel, spacer, buildResultPill(iv.getResult()));
+        Button prepareBtn = new Button("Prepare");
+        prepareBtn.getStyleClass().add("task-info-btn");
+        prepareBtn.setStyle("-fx-font-size: 11; -fx-padding: 3 8;");
+        prepareBtn.setOnAction(e -> {
+            e.consume();
+            selectedPrepInterview = iv;
+            interviewTabPane.getSelectionModel().select(prepTab);
+            refreshPreparationTab();
+        });
 
-        // ── Mid row: date + round badge + job URL icon ──
+        topRow.getChildren().addAll(companyLabel, sep, roleLabel, prepareBtn, spacer, buildResultPill(iv.getResult()));
+
+        // ── Mid row: date + status + round badge + job URL icon ──
         HBox midRow = new HBox(8);
         midRow.setAlignment(Pos.CENTER_LEFT);
 
-        Label dateLabel = new Label(iv.getDate() != null ? iv.getDate().format(CARD_DATE_FMT) : "\u2014");
+        String dtStr = iv.getDateTime() != null
+                ? iv.getDateTime().format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy \u00B7 h:mm a"))
+                : "\u2014";
+        Label dateLabel = new Label(dtStr);
         dateLabel.setStyle("-fx-text-fill: #718096; -fx-font-size: 11;");
         midRow.getChildren().add(dateLabel);
+
+        Label statusPill = new Label(
+                iv.getStatus() == com.workctl.core.model.InterviewStatus.SCHEDULED ? "Scheduled" : "Completed");
+        statusPill.getStyleClass()
+                .add(iv.getStatus() == com.workctl.core.model.InterviewStatus.SCHEDULED ? "meeting-status-scheduled"
+                        : "meeting-status-done");
+        midRow.getChildren().add(statusPill);
 
         if (iv.getRound() != null) {
             Label roundBadge = new Label(iv.getRound().label());
@@ -193,21 +226,22 @@ public class InterviewController {
         }
 
         card.getChildren().addAll(topRow, midRow);
-        if (!bottomRow.getChildren().isEmpty()) card.getChildren().add(bottomRow);
+        if (!bottomRow.getChildren().isEmpty())
+            card.getChildren().add(bottomRow);
         card.setOnMouseClicked(e -> showInterviewDetail(iv));
         return card;
     }
 
     private Label buildResultPill(InterviewResult result) {
         String text = result == null ? "Pending" : switch (result) {
-            case OFFERED  -> "Offered";
+            case OFFERED -> "Offered";
             case REJECTED -> "Rejected";
-            default       -> "Pending";
+            default -> "Pending";
         };
         String styleClass = result == null ? "interview-result-pending" : switch (result) {
-            case OFFERED  -> "interview-result-offered";
+            case OFFERED -> "interview-result-offered";
             case REJECTED -> "interview-result-rejected";
-            default       -> "interview-result-pending";
+            default -> "interview-result-pending";
         };
         Label pill = new Label(text);
         pill.getStyleClass().add(styleClass);
@@ -215,245 +249,219 @@ public class InterviewController {
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // PREP TOPICS — 3-LEVEL VIEW (Category → Section → Items)
+    // PREPARATION TAB
     // ─────────────────────────────────────────────────────────────────
 
-    @FXML
-    public void refreshPrepTopics() {
-        try {
-            List<PrepTopic> topics = prepTopicService.loadAll();
+    private void refreshPreparationTab() {
+        prepQuestionsVBox.getChildren().clear();
 
-            String catFilter = categoryFilterCombo.getValue();
-            if (catFilter != null && !catFilter.equals("All Categories")) {
-                topics = topics.stream()
-                        .filter(t -> t.getCategory().equalsIgnoreCase(catFilter))
-                        .toList();
-            }
-
-            prepTopicsVBox.getChildren().clear();
-
-            if (topics.isEmpty()) {
-                Label empty = new Label("No prep topics yet.  Click '+ Add Topic' to get started.");
-                empty.setStyle("-fx-text-fill: #718096; -fx-font-size: 12; -fx-padding: 10;");
-                prepTopicsVBox.getChildren().add(empty);
-                return;
-            }
-
-            // Build tree: category → section (or "" if none) → items
-            Map<String, Map<String, List<PrepTopic>>> tree = new LinkedHashMap<>();
-            for (PrepTopic t : topics) {
-                String sec = t.getSection() != null ? t.getSection() : "";
-                tree.computeIfAbsent(t.getCategory(), k -> new LinkedHashMap<>())
-                    .computeIfAbsent(sec, k -> new ArrayList<>())
-                    .add(t);
-            }
-
-            for (Map.Entry<String, Map<String, List<PrepTopic>>> catEntry : tree.entrySet()) {
-                prepTopicsVBox.getChildren().add(buildCategoryBlock(catEntry.getKey(), catEntry.getValue()));
-            }
-        } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    private Node buildCategoryBlock(String category, Map<String, List<PrepTopic>> sections) {
-        VBox block = new VBox(2);
-        block.setStyle("-fx-padding: 0 0 10 0;");
-
-        // ── Category header + "Add Section" button ──
-        HBox catHeader = new HBox(8);
-        catHeader.setAlignment(Pos.CENTER_LEFT);
-        catHeader.setStyle("-fx-padding: 6 0 4 0; -fx-border-color: transparent transparent #4a5568 transparent;"
-                + " -fx-border-width: 0 0 1 0;");
-
-        Label catLabel = new Label(category);
-        catLabel.setFont(Font.font(null, FontWeight.BOLD, 14));
-        catLabel.getStyleClass().add("prep-topic-category");
-
-        // count
-        long total = sections.values().stream().mapToLong(List::size).sum();
-        long done  = sections.values().stream().flatMap(Collection::stream).filter(PrepTopic::isDone).count();
-        Label progress = new Label(done + "/" + total);
-        progress.setStyle("-fx-text-fill: " + (done == total && total > 0 ? "#27ae60" : "#718096")
-                + "; -fx-font-size: 10;");
-
-        Region catSpacer = new Region();
-        HBox.setHgrow(catSpacer, Priority.ALWAYS);
-
-        Button addSectionBtn = new Button("+ Section");
-        addSectionBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #60a5fa;"
-                + " -fx-font-size: 10; -fx-cursor: hand; -fx-padding: 1 6;");
-        addSectionBtn.setOnAction(e -> showAddSectionDialog(category));
-
-        Button addItemBtn = new Button("+ Item");
-        addItemBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8;"
-                + " -fx-font-size: 10; -fx-cursor: hand; -fx-padding: 1 6;");
-        addItemBtn.setOnAction(e -> showAddTopicDialog(category, null));
-
-        catHeader.getChildren().addAll(catLabel, progress, catSpacer, addItemBtn, addSectionBtn);
-        block.getChildren().add(catHeader);
-
-        // ── Sections ──
-        for (Map.Entry<String, List<PrepTopic>> secEntry : sections.entrySet()) {
-            String sectionName = secEntry.getKey();
-            List<PrepTopic> items = secEntry.getValue();
-
-            if (!sectionName.isBlank()) {
-                // Section sub-header
-                HBox secHeader = new HBox(6);
-                secHeader.setAlignment(Pos.CENTER_LEFT);
-                secHeader.setStyle("-fx-padding: 6 0 2 8;");
-
-                Label secLabel = new Label(sectionName);
-                secLabel.setFont(Font.font(null, FontWeight.SEMI_BOLD, 12));
-                secLabel.setStyle("-fx-text-fill: #94a3b8;");
-
-                long sDone  = items.stream().filter(PrepTopic::isDone).count();
-                Label secProg = new Label(sDone + "/" + items.size());
-                secProg.setStyle("-fx-text-fill: #718096; -fx-font-size: 10;");
-
-                Region sSpacer = new Region();
-                HBox.setHgrow(sSpacer, Priority.ALWAYS);
-
-                Button addToSecBtn = new Button("+ Item");
-                addToSecBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8;"
-                        + " -fx-font-size: 10; -fx-cursor: hand; -fx-padding: 1 4;");
-                addToSecBtn.setOnAction(e -> showAddTopicDialog(category, sectionName));
-
-                secHeader.getChildren().addAll(secLabel, secProg, sSpacer, addToSecBtn);
-                block.getChildren().add(secHeader);
-            }
-
-            // Items
-            for (PrepTopic t : items) {
-                block.getChildren().add(buildTopicRow(t, !sectionName.isBlank()));
-            }
+        if (selectedPrepInterview == null) {
+            prepTitleLabel.setText("Please select an Interview to prepare.");
+            return;
         }
 
-        return block;
+        prepTitleLabel.setText(
+                "Preparing for: " + selectedPrepInterview.getCompany() + " \u2014 " + selectedPrepInterview.getRole());
+
+        // Group the selected interview's questions by section
+        Map<String, List<Interview.InterviewQuestion>> grouped = new LinkedHashMap<>();
+        for (String c : DEFAULT_SECTIONS) {
+            grouped.put(c, new ArrayList<>());
+        }
+
+        for (Interview.InterviewQuestion t : selectedPrepInterview.getQuestions()) {
+            grouped.computeIfAbsent(t.getSection(), k -> new ArrayList<>()).add(t);
+        }
+
+        boolean first = true;
+        for (String sec : DEFAULT_SECTIONS) {
+            List<Interview.InterviewQuestion> items = grouped.get(sec);
+            if (items == null || items.isEmpty())
+                continue;
+
+            if (!first) {
+                Region spacer = new Region();
+                spacer.setPrefHeight(10);
+                prepQuestionsVBox.getChildren().add(spacer);
+            }
+            first = false;
+
+            int total = items.size();
+            long done = items.stream().filter(Interview.InterviewQuestion::isDone).count();
+
+            HBox header = new HBox(10);
+            header.setAlignment(Pos.CENTER_LEFT);
+
+            Label secLbl = new Label(sec);
+            secLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b;");
+            Label cntLbl = new Label(done + "/" + total);
+            cntLbl.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11;");
+
+            Region hSpc = new Region();
+            HBox.setHgrow(hSpc, Priority.ALWAYS);
+
+            header.getChildren().addAll(secLbl, cntLbl, hSpc);
+
+            Separator s = new Separator(Orientation.HORIZONTAL);
+            s.setStyle("-fx-padding: 0 0 5 0;");
+
+            VBox sectionBox = new VBox(4, header, s);
+
+            for (Interview.InterviewQuestion q : items) {
+                sectionBox.getChildren().add(buildQuestionCard(q));
+            }
+
+            prepQuestionsVBox.getChildren().add(sectionBox);
+        }
     }
 
-    private Node buildTopicRow(PrepTopic topic, boolean indented) {
-        CheckBox cb = new CheckBox(topic.getName());
-        cb.setSelected(topic.isDone());
-        if (topic.isDone()) cb.setStyle("-fx-text-fill: #888;");
-        cb.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(cb, Priority.ALWAYS);
+    private Node buildQuestionCard(Interview.InterviewQuestion q) {
+        VBox card = new VBox(6);
+        card.getStyleClass().add("task-card");
+
+        // Top row
+        HBox topRow = new HBox(6);
+        topRow.setAlignment(Pos.CENTER_LEFT);
+
+        CheckBox cb = new CheckBox();
+        cb.setSelected(q.isDone());
         cb.setOnAction(e -> {
-            prepTopicService.toggleDone(topic.getId());
-            refreshPrepTopics();
+            q.setDone(cb.isSelected());
+            saveCurrentInterviewSilently();
+            refreshPreparationTab();
         });
 
-        Button removeBtn = new Button("\u2715");
-        removeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #e74c3c;"
-                + " -fx-cursor: hand; -fx-padding: 0 3;");
-        removeBtn.setOnAction(e -> {
-            prepTopicService.deleteTopic(topic.getId());
-            refreshPrepTopics();
+        Label title = new Label(q.getText());
+        title.setWrapText(true);
+        title.setStyle("-fx-font-size: 13; -fx-text-fill: #334155;");
+        if (q.isDone()) {
+            title.setStyle("-fx-font-size: 13; -fx-text-fill: #94a3b8; -fx-strikethrough: true;");
+        }
+
+        Region spc = new Region();
+        HBox.setHgrow(spc, Priority.ALWAYS);
+
+        // Edit/Delete actions
+        Button editBtn = new Button("Edit");
+        editBtn.getStyleClass().add("task-info-btn");
+        editBtn.setStyle("-fx-font-size: 10; -fx-padding: 2 6;");
+        editBtn.setOnAction(e -> showStandaloneQuestionDialog(q));
+
+        Button delBtn = new Button("\u2715");
+        delBtn.setStyle(
+                "-fx-background-color: transparent; -fx-text-fill: #ef4444; -fx-cursor: hand; -fx-padding: 0 4;");
+        delBtn.setOnAction(e -> {
+            selectedPrepInterview.getQuestions().remove(q);
+            saveCurrentInterviewSilently();
+            refreshPreparationTab();
         });
 
-        HBox row = new HBox(4, cb, removeBtn);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-padding: 2 0 2 " + (indented ? "20" : "4") + ";");
-        return row;
+        topRow.getChildren().addAll(cb, title, spc, editBtn, delBtn);
+
+        // Link row if present
+        HBox linkRow = new HBox();
+        if (q.getUrl() != null && !q.getUrl().isBlank()) {
+            Hyperlink a = new Hyperlink("\uD83D\uDD17 Link");
+            a.setStyle("-fx-font-size: 11;");
+            a.setOnAction(e -> openUrl(q.getUrl()));
+            linkRow.getChildren().add(a);
+        }
+
+        if (q.isImportant()) {
+            Label imp = new Label("\u2B50 Important");
+            imp.setStyle("-fx-text-fill: #f59e0b; -fx-font-size: 10;");
+            linkRow.getChildren().add(imp);
+            HBox.setMargin(imp, new Insets(2, 0, 0, 8)); // visual align
+        }
+
+        card.getChildren().add(topRow);
+        if (!linkRow.getChildren().isEmpty()) {
+            card.getChildren().add(linkRow);
+        }
+
+        return card;
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // ADD TOPIC / SECTION HANDLERS
-    // ─────────────────────────────────────────────────────────────────
+    private void saveCurrentInterviewSilently() {
+        if (selectedPrepInterview != null) {
+            interviewService.saveInterview(selectedPrepInterview);
+            refreshInterviews(); // keep the kanban numbers in sync
+        }
+    }
 
     @FXML
-    public void handleAddTopic() {
-        showAddTopicDialog(null, null);
+    private void handleAddQuestion() {
+        if (selectedPrepInterview == null) {
+            Alert a = new Alert(Alert.AlertType.WARNING, "Please select an Interview to prepare for first.",
+                    ButtonType.OK);
+            a.showAndWait();
+            return;
+        }
+        showStandaloneQuestionDialog(null);
     }
 
-    private void showAddTopicDialog(String preCategory, String preSection) {
+    private void showStandaloneQuestionDialog(Interview.InterviewQuestion existing) {
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Add Prep Item");
-        dialog.setHeaderText("New Study Item");
-        dialog.getDialogPane().setPrefWidth(380);
-
-        ButtonType addBtn = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(addBtn, ButtonType.CANCEL);
+        dialog.setTitle(existing == null ? "Add Question" : "Edit Question");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
-        grid.setHgap(12); grid.setVgap(10);
-        grid.setPadding(new Insets(16, 20, 10, 20));
-
-        ComboBox<String> catCombo = new ComboBox<>();
-        catCombo.setEditable(true);
-        catCombo.getItems().addAll(DEFAULT_CATEGORIES);
-        catCombo.setValue(preCategory != null ? preCategory : DEFAULT_CATEGORIES.get(0));
-        GridPane.setHgrow(catCombo, Priority.ALWAYS);
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
 
         ComboBox<String> secCombo = new ComboBox<>();
-        secCombo.setEditable(true);
-        secCombo.setPromptText("e.g. Arrays, Trees  (optional)");
-        if (preSection != null) secCombo.setValue(preSection);
-        // Populate existing sections for selected category
-        populateSectionCombo(secCombo, catCombo.getValue());
-        catCombo.setOnAction(e -> populateSectionCombo(secCombo, catCombo.getValue()));
-        GridPane.setHgrow(secCombo, Priority.ALWAYS);
+        secCombo.getItems().addAll(DEFAULT_SECTIONS);
+        secCombo.setValue(existing == null ? "DSA" : existing.getSection());
 
-        TextField nameField = new TextField();
-        nameField.setPromptText("e.g. Two Pointer, TCP/IP Handshake");
-        GridPane.setHgrow(nameField, Priority.ALWAYS);
+        TextField questField = new TextField(existing == null ? "" : existing.getText());
+        questField.setPrefWidth(300);
 
-        grid.add(new Label("Category"),  0, 0); grid.add(catCombo,  1, 0);
-        grid.add(new Label("Section"),   0, 1); grid.add(secCombo,  1, 1);
-        grid.add(new Label("Item *"),    0, 2); grid.add(nameField, 1, 2);
+        String linkText = existing == null ? "" : (existing.getUrl() != null ? existing.getUrl() : "");
+        TextField urlField = new TextField(linkText);
+        urlField.setPromptText("https://... (optional)");
+
+        CheckBox impCheck = new CheckBox("Important");
+        impCheck.setSelected(existing != null && existing.isImportant());
+
+        grid.add(new Label("Section:"), 0, 0);
+        grid.add(secCombo, 1, 0);
+        grid.add(new Label("Question:"), 0, 1);
+        grid.add(questField, 1, 1);
+        grid.add(new Label("URL:"), 0, 2);
+        grid.add(urlField, 1, 2);
+        grid.add(impCheck, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
+        Platform.runLater(questField::requestFocus);
 
-        Button addButton = (Button) dialog.getDialogPane().lookupButton(addBtn);
-        addButton.setDisable(true);
-        nameField.textProperty().addListener((o, old, n) -> addButton.setDisable(n.trim().isEmpty()));
-        Platform.runLater(nameField::requestFocus);
+        dialog.showAndWait().ifPresent(res -> {
+            if (res == ButtonType.OK) {
+                String sec = secCombo.getValue();
+                String q = questField.getText().trim();
+                String link = urlField.getText().trim();
+                boolean imp = impCheck.isSelected();
 
-        dialog.showAndWait().ifPresent(bt -> {
-            if (bt == addBtn) {
-                String name     = nameField.getText().trim();
-                String category = nvl(catCombo.getValue(), DEFAULT_CATEGORIES.get(0));
-                String section  = nvl(secCombo.getValue(), null);
-                if (!name.isBlank()) {
-                    prepTopicService.addTopic(category, section, name);
-                    updateCategoryFilter(category);
-                    refreshPrepTopics();
+                if (q.isBlank())
+                    return;
+
+                if (existing == null) {
+                    Interview.InterviewQuestion nq = new Interview.InterviewQuestion(sec, q, link, false, imp, "");
+                    if (selectedPrepInterview.getQuestions() == null) {
+                        selectedPrepInterview.setQuestions(new ArrayList<>());
+                    }
+                    selectedPrepInterview.getQuestions().add(nq);
+                } else {
+                    existing.setSection(sec);
+                    existing.setText(q);
+                    existing.setUrl(link);
+                    existing.setImportant(imp);
                 }
+
+                saveCurrentInterviewSilently();
+                refreshPreparationTab();
             }
         });
-    }
-
-    private void showAddSectionDialog(String category) {
-        TextInputDialog d = new TextInputDialog();
-        d.setTitle("Add Section");
-        d.setHeaderText("New section under \"" + category + "\"");
-        d.setContentText("Section name (e.g. Arrays, Trees):");
-        d.showAndWait().ifPresent(sectionName -> {
-            if (!sectionName.isBlank()) {
-                // Add a placeholder item under this section so the section persists
-                prepTopicService.addTopic(category, sectionName.trim(), "(placeholder — replace me)");
-                refreshPrepTopics();
-            }
-        });
-    }
-
-    private void populateSectionCombo(ComboBox<String> secCombo, String category) {
-        String current = secCombo.getValue();
-        secCombo.getItems().clear();
-        if (category != null) {
-            prepTopicService.loadAll().stream()
-                    .filter(t -> t.getCategory().equalsIgnoreCase(category)
-                              && t.getSection() != null)
-                    .map(PrepTopic::getSection)
-                    .distinct()
-                    .forEach(secCombo.getItems()::add);
-        }
-        if (current != null && !current.isBlank()) secCombo.setValue(current);
-    }
-
-    private void updateCategoryFilter(String category) {
-        if (!categoryFilterCombo.getItems().contains(category)) {
-            categoryFilterCombo.getItems().add(category);
-        }
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -461,10 +469,12 @@ public class InterviewController {
     // ─────────────────────────────────────────────────────────────────
 
     @FXML
-    public void handleNewInterview() { showInterviewDialog(null); }
+    public void handleNewInterview() {
+        showInterviewDialog(null);
+    }
 
     // ─────────────────────────────────────────────────────────────────
-    // READ-ONLY DETAIL VIEW  (click on card → opens this)
+    // READ-ONLY DETAIL VIEW (click on card → opens this)
     // ─────────────────────────────────────────────────────────────────
 
     public void showInterviewDetail(Interview iv) {
@@ -474,8 +484,8 @@ public class InterviewController {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Interview: " + iv.getCompany() + " \u2014 " + iv.getRole());
 
-        ButtonType closeBtn  = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
-        ButtonType editBtn   = new ButtonType("Edit",  ButtonBar.ButtonData.OTHER);
+        ButtonType closeBtn = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType editBtn = new ButtonType("Edit", ButtonBar.ButtonData.OTHER);
         ButtonType deleteBtn = new ButtonType("Delete", ButtonBar.ButtonData.LEFT);
         dialog.getDialogPane().getButtonTypes().addAll(deleteBtn, editBtn, closeBtn);
 
@@ -485,11 +495,12 @@ public class InterviewController {
         leftPanel.setPrefWidth(210);
 
         Label companyLbl = new Label(iv.getCompany());
-        companyLbl.setStyle("-fx-font-size: 17; -fx-font-weight: bold;");
+        companyLbl.getStyleClass().add("interview-card-title");
+        companyLbl.setStyle("-fx-font-size: 17;"); // override specific size for detail view
         companyLbl.setWrapText(true);
 
         Label roleLbl = new Label(iv.getRole());
-        roleLbl.setStyle("-fx-font-size: 12; -fx-text-fill: #718096;");
+        roleLbl.getStyleClass().add("interview-card-role");
         roleLbl.setWrapText(true);
 
         leftPanel.getChildren().addAll(companyLbl, roleLbl, buildResultPill(iv.getResult()));
@@ -498,11 +509,21 @@ public class InterviewController {
         sep1.setStyle("-fx-padding: 2 0;");
         leftPanel.getChildren().add(sep1);
 
-        // Date
-        Label dateLbl = new Label("\uD83D\uDCC5  "
-                + (iv.getDate() != null ? iv.getDate().format(CARD_DATE_FMT) : "\u2014"));
+        // Date & Time
+        String dtStr = iv.getDateTime() != null
+                ? iv.getDateTime().format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy \u00B7 h:mm a"))
+                : "\u2014";
+        Label dateLbl = new Label("\uD83D\uDCC5  " + dtStr);
         dateLbl.setStyle("-fx-font-size: 12;");
         leftPanel.getChildren().add(dateLbl);
+
+        // Status
+        Label statusPill = new Label(
+                iv.getStatus() == com.workctl.core.model.InterviewStatus.SCHEDULED ? "Scheduled" : "Completed");
+        statusPill.getStyleClass()
+                .add(iv.getStatus() == com.workctl.core.model.InterviewStatus.SCHEDULED ? "meeting-status-scheduled"
+                        : "meeting-status-done");
+        leftPanel.getChildren().add(statusPill);
 
         // Round
         if (iv.getRound() != null) {
@@ -595,39 +616,39 @@ public class InterviewController {
     private String buildInterviewDetailHtml(Interview iv) {
         StringBuilder h = new StringBuilder();
         h.append("""
-            <html><head><meta charset="UTF-8"><style>
-            body { font-family: -apple-system, Arial, sans-serif; font-size: 14px;
-                   line-height: 1.6; color: #1a202c; padding: 20px; margin: 0;
-                   -webkit-user-select: text; user-select: text; background: #f8fafc; }
-            h2 { font-size: 13px; font-weight: 700; color: #4a5568; margin: 18px 0 8px 0;
-                 border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;
-                 text-transform: uppercase; letter-spacing: 0.06em; }
-            .notes-block { background: #fff; border-left: 3px solid #3b82f6;
-                           padding: 10px 14px; border-radius: 0 6px 6px 0;
-                           border: 1px solid #e2e8f0; font-size: 13px; white-space: pre-wrap; }
-            .link-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px;
-                        margin: 4px 0; background: #fff; border-radius: 6px;
-                        border: 1px solid #e2e8f0; }
-            .link-row a { color: #3b82f6; text-decoration: none; font-size: 13px; }
-            .link-row a:hover { text-decoration: underline; }
-            .sec-label { display: inline-block; background: #e2e8f0; color: #4a5568;
-                         font-size: 10px; font-weight: 700; padding: 2px 8px;
-                         border-radius: 12px; text-transform: uppercase;
-                         letter-spacing: 0.05em; margin-bottom: 4px; }
-            .q-row { display: flex; align-items: baseline; gap: 6px; padding: 3px 4px;
-                     margin: 2px 0; border-radius: 4px; font-size: 13px; }
-            .q-row:hover { background: #edf2f7; }
-            .q-done { color: #a0aec0; text-decoration: line-through; }
-            .q-check  { color: #27ae60; font-weight: bold; flex-shrink: 0; }
-            .q-box    { color: #cbd5e0; flex-shrink: 0; }
-            .q-star   { color: #f59e0b; font-size: 11px; }
-            .q-url    { font-size: 11px; }
-            .q-url a  { color: #3b82f6; text-decoration: none; }
-            .q-url a:hover { text-decoration: underline; }
-            .q-notes  { font-size: 11px; color: #718096; font-style: italic;
-                        padding: 0 0 2px 22px; }
-            </style></head><body>
-            """);
+                <html><head><meta charset="UTF-8"><style>
+                body { font-family: -apple-system, Arial, sans-serif; font-size: 14px;
+                       line-height: 1.6; color: #1a202c; padding: 20px; margin: 0;
+                       -webkit-user-select: text; user-select: text; background: #f8fafc; }
+                h2 { font-size: 13px; font-weight: 700; color: #4a5568; margin: 18px 0 8px 0;
+                     border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;
+                     text-transform: uppercase; letter-spacing: 0.06em; }
+                .notes-block { background: #fff; border-left: 3px solid #3b82f6;
+                               padding: 10px 14px; border-radius: 0 6px 6px 0;
+                               border: 1px solid #e2e8f0; font-size: 13px; white-space: pre-wrap; }
+                .link-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+                            margin: 4px 0; background: #fff; border-radius: 6px;
+                            border: 1px solid #e2e8f0; }
+                .link-row a { color: #3b82f6; text-decoration: none; font-size: 13px; }
+                .link-row a:hover { text-decoration: underline; }
+                .sec-label { display: inline-block; background: #e2e8f0; color: #4a5568;
+                             font-size: 10px; font-weight: 700; padding: 2px 8px;
+                             border-radius: 12px; text-transform: uppercase;
+                             letter-spacing: 0.05em; margin-bottom: 4px; }
+                .q-row { display: flex; align-items: baseline; gap: 6px; padding: 3px 4px;
+                         margin: 2px 0; border-radius: 4px; font-size: 13px; }
+                .q-row:hover { background: #edf2f7; }
+                .q-done { color: #a0aec0; text-decoration: line-through; }
+                .q-check  { color: #27ae60; font-weight: bold; flex-shrink: 0; }
+                .q-box    { color: #cbd5e0; flex-shrink: 0; }
+                .q-star   { color: #f59e0b; font-size: 11px; }
+                .q-url    { font-size: 11px; }
+                .q-url a  { color: #3b82f6; text-decoration: none; }
+                .q-url a:hover { text-decoration: underline; }
+                .q-notes  { font-size: 11px; color: #718096; font-style: italic;
+                            padding: 0 0 2px 22px; }
+                </style></head><body>
+                """);
 
         // Notes
         if (iv.getNotes() != null && !iv.getNotes().isBlank()) {
@@ -640,8 +661,8 @@ public class InterviewController {
             h.append("<h2>Experience Links</h2>\n");
             for (ExperienceLink link : iv.getExperienceLinks()) {
                 h.append("<div class='link-row'>&#128279;&nbsp;<a href='")
-                 .append(esc(link.getUrl())).append("'>")
-                 .append(esc(link.getTitle())).append("</a></div>\n");
+                        .append(esc(link.getUrl())).append("'>")
+                        .append(esc(link.getTitle())).append("</a></div>\n");
             }
         }
 
@@ -657,19 +678,20 @@ public class InterviewController {
             for (Map.Entry<String, List<InterviewQuestion>> entry : bySection.entrySet()) {
                 long secDone = entry.getValue().stream().filter(InterviewQuestion::isDone).count();
                 h.append("<div><span class='sec-label'>").append(esc(entry.getKey())).append("</span>")
-                 .append(" <small style='color:#a0aec0;'>").append(secDone)
-                 .append("/").append(entry.getValue().size()).append("</small></div>\n");
+                        .append(" <small style='color:#a0aec0;'>").append(secDone)
+                        .append("/").append(entry.getValue().size()).append("</small></div>\n");
 
                 for (InterviewQuestion q : entry.getValue()) {
                     h.append("<div class='q-row'>");
                     h.append("<span class='").append(q.isDone() ? "q-check" : "q-box").append("'>")
-                     .append(q.isDone() ? "&#10003;" : "&#9633;").append("</span>");
+                            .append(q.isDone() ? "&#10003;" : "&#9633;").append("</span>");
                     h.append("<span class='").append(q.isDone() ? "q-done" : "").append("'>")
-                     .append(esc(q.getText())).append("</span>");
-                    if (q.isImportant()) h.append(" <span class='q-star'>&#11088;</span>");
+                            .append(esc(q.getText())).append("</span>");
+                    if (q.isImportant())
+                        h.append(" <span class='q-star'>&#11088;</span>");
                     if (q.getUrl() != null) {
                         h.append(" <span class='q-url'><a href='").append(esc(q.getUrl()))
-                         .append("'>&#128279;</a></span>");
+                                .append("'>&#128279;</a></span>");
                     }
                     h.append("</div>\n");
                     if (q.getNotes() != null && !q.getNotes().isBlank()) {
@@ -684,7 +706,8 @@ public class InterviewController {
     }
 
     private static String esc(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("\"", "&quot;").replace("'", "&#39;");
     }
@@ -710,8 +733,9 @@ public class InterviewController {
 
         ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().add(saveBtn);
-        if (!isNew) dialog.getDialogPane().getButtonTypes()
-                .add(new ButtonType("Delete", ButtonBar.ButtonData.OTHER));
+        if (!isNew)
+            dialog.getDialogPane().getButtonTypes()
+                    .add(new ButtonType("Delete", ButtonBar.ButtonData.OTHER));
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
 
         VBox mainContent = new VBox(14);
@@ -719,7 +743,8 @@ public class InterviewController {
 
         // ── Basic fields grid ──────────────────────────────────────────
         GridPane grid = new GridPane();
-        grid.setHgap(12); grid.setVgap(10);
+        grid.setHgap(12);
+        grid.setVgap(10);
 
         TextField companyField = new TextField(existing == null ? "" : nvl(existing.getCompany()));
         companyField.setPromptText("Company name");
@@ -730,10 +755,38 @@ public class InterviewController {
         GridPane.setHgrow(roleField, Priority.ALWAYS);
 
         DatePicker datePicker = new DatePicker(
-                existing != null && existing.getDate() != null ? existing.getDate() : LocalDate.now());
+                existing != null && existing.getDateTime() != null
+                        ? existing.getDateTime().toLocalDate()
+                        : LocalDate.now());
+
+        int initHour = existing != null && existing.getDateTime() != null
+                ? existing.getDateTime().getHour()
+                : 10;
+        int initMin = existing != null && existing.getDateTime() != null
+                ? existing.getDateTime().getMinute()
+                : 0;
+
+        Spinner<Integer> hourSpinner = new Spinner<>(0, 23, initHour);
+        hourSpinner.setPrefWidth(68);
+        hourSpinner.setEditable(true);
+
+        Spinner<Integer> minSpinner = new Spinner<>(0, 59, initMin, 15);
+        minSpinner.setPrefWidth(68);
+        minSpinner.setEditable(true);
+
+        HBox timeBox = new HBox(6, hourSpinner, new Label(":"), minSpinner);
+        timeBox.setAlignment(Pos.CENTER_LEFT);
+
+        ComboBox<String> statusCombo = new ComboBox<>();
+        statusCombo.getItems().addAll("Scheduled", "Completed");
+        statusCombo
+                .setValue(existing == null || existing.getStatus() == com.workctl.core.model.InterviewStatus.SCHEDULED
+                        ? "Scheduled"
+                        : "Completed");
 
         ComboBox<String> roundCombo = new ComboBox<>();
-        for (InterviewRound r : InterviewRound.values()) roundCombo.getItems().add(r.label());
+        for (InterviewRound r : InterviewRound.values())
+            roundCombo.getItems().add(r.label());
         roundCombo.setValue(existing == null ? InterviewRound.TECHNICAL.label()
                 : existing.getRound() != null ? existing.getRound().label() : InterviewRound.TECHNICAL.label());
 
@@ -741,8 +794,11 @@ public class InterviewController {
         resultCombo.getItems().addAll("Pending", "Offered", "Rejected");
         resultCombo.setValue(existing == null ? "Pending"
                 : existing.getResult() == null ? "Pending"
-                : switch (existing.getResult()) {
-                    case OFFERED -> "Offered"; case REJECTED -> "Rejected"; default -> "Pending"; });
+                        : switch (existing.getResult()) {
+                            case OFFERED -> "Offered";
+                            case REJECTED -> "Rejected";
+                            default -> "Pending";
+                        });
 
         TextField jobUrlField = new TextField(existing == null ? "" : nvl(existing.getJobUrl()));
         jobUrlField.setPromptText("https://... job posting / calendar link (optional)");
@@ -753,13 +809,24 @@ public class InterviewController {
         notesArea.setPrefRowCount(2);
         notesArea.setWrapText(true);
 
-        grid.add(new Label("Company *"), 0, 0); grid.add(companyField, 1, 0);
-        grid.add(new Label("Role *"),    0, 1); grid.add(roleField,    1, 1);
-        grid.add(new Label("Date"),      0, 2); grid.add(datePicker,   1, 2);
-        grid.add(new Label("Round"),     0, 3); grid.add(roundCombo,   1, 3);
-        grid.add(new Label("Result"),    0, 4); grid.add(resultCombo,  1, 4);
-        grid.add(new Label("Job URL"),   0, 5); grid.add(jobUrlField,  1, 5);
-        grid.add(new Label("Notes"),     0, 6); grid.add(notesArea,    1, 6);
+        grid.add(new Label("Company *"), 0, 0);
+        grid.add(companyField, 1, 0);
+        grid.add(new Label("Role *"), 0, 1);
+        grid.add(roleField, 1, 1);
+        grid.add(new Label("Date"), 0, 2);
+        grid.add(datePicker, 1, 2);
+        grid.add(new Label("Time"), 0, 3);
+        grid.add(timeBox, 1, 3);
+        grid.add(new Label("Status"), 0, 4);
+        grid.add(statusCombo, 1, 4);
+        grid.add(new Label("Round"), 0, 5);
+        grid.add(roundCombo, 1, 5);
+        grid.add(new Label("Result"), 0, 6);
+        grid.add(resultCombo, 1, 6);
+        grid.add(new Label("Job URL"), 0, 7);
+        grid.add(jobUrlField, 1, 7);
+        grid.add(new Label("Notes"), 0, 8);
+        grid.add(notesArea, 1, 8);
 
         mainContent.getChildren().add(grid);
 
@@ -787,7 +854,8 @@ public class InterviewController {
             String t = linkTitleField.getText().trim();
             if (!u.isBlank()) {
                 liveLinks.add(new ExperienceLink(t.isBlank() ? u : t, u));
-                linkTitleField.clear(); linkUrlField.clear();
+                linkTitleField.clear();
+                linkUrlField.clear();
                 refreshLinksList(linksList, liveLinks);
             }
         });
@@ -823,14 +891,16 @@ public class InterviewController {
         Button addQBtn = new Button("+ Add");
         addQBtn.getStyleClass().add("add-task-btn");
         addQBtn.setOnAction(e -> {
-            String txt     = qTextField.getText().trim();
+            String txt = qTextField.getText().trim();
             String section = sectionCombo.getValue();
-            if (section == null || section.isBlank()) section = "General";
+            if (section == null || section.isBlank())
+                section = "General";
             if (!txt.isBlank()) {
                 String url = qUrlField.getText().trim();
                 liveQuestions.add(new InterviewQuestion(section, txt,
                         url.isBlank() ? null : url, false, false, null));
-                qTextField.clear(); qUrlField.clear();
+                qTextField.clear();
+                qUrlField.clear();
                 refreshQuestionList(questionsList, liveQuestions);
             }
         });
@@ -850,16 +920,16 @@ public class InterviewController {
 
         // Disable Save until company + role filled
         Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveBtn);
-        Runnable validate = () ->
-                saveButton.setDisable(companyField.getText().trim().isEmpty()
-                        || roleField.getText().trim().isEmpty());
+        Runnable validate = () -> saveButton.setDisable(companyField.getText().trim().isEmpty()
+                || roleField.getText().trim().isEmpty());
         validate.run();
         companyField.textProperty().addListener((o, old, n) -> validate.run());
         roleField.textProperty().addListener((o, old, n) -> validate.run());
         Platform.runLater(companyField::requestFocus);
 
         Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isEmpty()) return;
+        if (result.isEmpty())
+            return;
         ButtonType clicked = result.get();
 
         // ── Delete ──────────────────────────────────────────────────────
@@ -874,28 +944,39 @@ public class InterviewController {
             return;
         }
 
-        if (clicked != saveBtn) return;
+        if (clicked != saveBtn)
+            return;
 
         // ── Save ────────────────────────────────────────────────────────
         String company = companyField.getText().trim();
-        String role    = roleField.getText().trim();
-        if (company.isBlank() || role.isBlank()) return;
+        String role = roleField.getText().trim();
+        if (company.isBlank() || role.isBlank())
+            return;
 
         LocalDate date = datePicker.getValue() != null ? datePicker.getValue() : LocalDate.now();
+        java.time.LocalDateTime dateTime = date.atTime(hourSpinner.getValue(), minSpinner.getValue());
+
+        com.workctl.core.model.InterviewStatus status = "Completed".equals(statusCombo.getValue())
+                ? com.workctl.core.model.InterviewStatus.COMPLETED
+                : com.workctl.core.model.InterviewStatus.SCHEDULED;
 
         InterviewRound round = InterviewRound.TECHNICAL;
         for (InterviewRound r : InterviewRound.values()) {
-            if (r.label().equals(roundCombo.getValue())) { round = r; break; }
+            if (r.label().equals(roundCombo.getValue())) {
+                round = r;
+                break;
+            }
         }
 
         InterviewResult res = switch (resultCombo.getValue()) {
-            case "Offered"  -> InterviewResult.OFFERED;
+            case "Offered" -> InterviewResult.OFFERED;
             case "Rejected" -> InterviewResult.REJECTED;
-            default         -> InterviewResult.PENDING;
+            default -> InterviewResult.PENDING;
         };
 
         if (isNew) {
-            Interview iv = interviewService.createInterview(company, role, date);
+            Interview iv = interviewService.createInterview(company, role, dateTime);
+            iv.setStatus(status);
             iv.setRound(round);
             iv.setResult(res);
             iv.setJobUrl(jobUrlField.getText().trim());
@@ -906,7 +987,8 @@ public class InterviewController {
         } else {
             existing.setCompany(company);
             existing.setRole(role);
-            existing.setDate(date);
+            existing.setDateTime(dateTime);
+            existing.setStatus(status);
             existing.setRound(round);
             existing.setResult(res);
             existing.setJobUrl(jobUrlField.getText().trim());
@@ -945,13 +1027,20 @@ public class InterviewController {
             });
 
             HBox row = new HBox(6, hyperlink,
-                    new Region() {{ HBox.setHgrow(this, Priority.ALWAYS); }}, removeBtn);
+                    new Region() {
+                        {
+                            HBox.setHgrow(this, Priority.ALWAYS);
+                        }
+                    }, removeBtn);
             row.setAlignment(Pos.CENTER_LEFT);
             container.getChildren().add(row);
         }
     }
 
-    /** Rebuild the questions list inside the dialog. Questions are grouped by section. */
+    /**
+     * Rebuild the questions list inside the dialog. Questions are grouped by
+     * section.
+     */
     private void refreshQuestionList(VBox container, List<InterviewQuestion> questions) {
         container.getChildren().clear();
 
@@ -972,7 +1061,8 @@ public class InterviewController {
 
                 CheckBox doneCb = new CheckBox(q.getText());
                 doneCb.setSelected(q.isDone());
-                if (q.isDone()) doneCb.setStyle("-fx-text-fill: #888;");
+                if (q.isDone())
+                    doneCb.setStyle("-fx-text-fill: #888;");
                 doneCb.setOnAction(e -> q.setDone(doneCb.isSelected()));
                 HBox.setHgrow(doneCb, Priority.ALWAYS);
 
@@ -1018,7 +1108,11 @@ public class InterviewController {
                 });
 
                 HBox row = new HBox(4, doneCb,
-                        new Region() {{ HBox.setHgrow(this, Priority.ALWAYS); }},
+                        new Region() {
+                            {
+                                HBox.setHgrow(this, Priority.ALWAYS);
+                            }
+                        },
                         urlBtn, starBtn, removeBtn);
                 row.setAlignment(Pos.CENTER_LEFT);
                 row.setStyle("-fx-padding: 1 0 1 4;");
@@ -1048,18 +1142,26 @@ public class InterviewController {
 
     /** Opens a URL in the system default browser. Best-effort; never throws. */
     private static void openUrl(String url) {
-        if (url == null || url.isBlank()) return;
+        if (url == null || url.isBlank())
+            return;
         try {
             java.awt.Desktop.getDesktop().browse(new URI(url.startsWith("http") ? url : "https://" + url));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private void afterChange() {
         refreshInterviews();
-        refreshPrepTopics();
-        if (onInterviewChanged != null) onInterviewChanged.run();
+        refreshPreparationTab();
+        if (onInterviewChanged != null)
+            onInterviewChanged.run();
     }
 
-    private static String nvl(String s, String fallback) { return (s == null || s.isBlank()) ? fallback : s.trim(); }
-    private static String nvl(String s) { return s == null ? "" : s; }
+    private static String nvl(String s, String fallback) {
+        return (s == null || s.isBlank()) ? fallback : s.trim();
+    }
+
+    private static String nvl(String s) {
+        return s == null ? "" : s;
+    }
 }
