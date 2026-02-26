@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<SplitPane fx:id="mainSplitPane"
+           dividerPositions="0.25"
+           styleClass="app-bg"
+           xmlns="http://javafx.com/javafx/17"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.workctl.gui.controller.CommandController">
+
+    <!-- Left Side: Categories & Filters -->
+    <VBox spacing="10" styleClass="sidebar-root" style="-fx-padding: 10;">
+        <Label text="Scope" style="-fx-font-weight: bold;"/>
+        <ComboBox fx:id="projectFilterCombo" maxWidth="Infinity"/>
+
+        <Label text="Categories" style="-fx-font-weight: bold; -fx-padding: 10 0 0 0;"/>
+        <ListView fx:id="categoryListView" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;"/>
+    </VBox>
+
+    <!-- Right Side: Command List -->
+    <VBox spacing="10" style="-fx-padding: 15;">
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label fx:id="headerLabel" text="All Commands" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <TextField fx:id="searchField" promptText="Search commands..." prefWidth="250"/>
+            <Button text="+ Add Command" onAction="#handleAddCommand" styleClass="action-btn"/>
+        </HBox>
+
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+            <VBox fx:id="commandsContainer" spacing="10" style="-fx-padding: 0 10 0 0;">
+                <!-- Command cards injected here -->
+            </VBox>
+        </ScrollPane>
+    </VBox>
+
+</SplitPane>

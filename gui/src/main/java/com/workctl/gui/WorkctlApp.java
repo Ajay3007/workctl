@@ -11,6 +11,17 @@ public class WorkctlApp extends Application {
     @Override
     public void start(Stage stage) throws Exception {
 
+        try {
+            com.workctl.config.ConfigManager.load();
+        } catch (IllegalStateException e) {
+            boolean success = SetupWizard.run(stage);
+            if (!success) {
+                System.out.println("Setup cancelled. Exiting.");
+                javafx.application.Platform.exit();
+                return;
+            }
+        }
+
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/com/workctl/gui/view/main.fxml"));
 

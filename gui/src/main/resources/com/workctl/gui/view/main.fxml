@@ -61,6 +61,10 @@
                 <fx:include source="tasks.fxml" fx:id="tasksView"/>
             </Tab>
 
+            <Tab text="Commands" closable="false">
+                <fx:include source="commands.fxml" fx:id="commandsView"/>
+            </Tab>
+
             <Tab text="Logs" closable="false">
                 <fx:include source="logs.fxml" fx:id="logsView"/>
             </Tab>

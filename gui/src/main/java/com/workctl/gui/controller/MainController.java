@@ -50,6 +50,8 @@ public class MainController {
     private MeetingController meetingsViewController;
     @FXML
     private InterviewController interviewViewController;
+    @FXML
+    private CommandController commandsViewController;
 
     private final ProjectService projectService = new ProjectService();
     private final MeetingService meetingService = new MeetingService();
@@ -139,6 +141,11 @@ public class MainController {
                 } else {
                     selectedProject = null;
                     deleteProjectBtn.setDisable(true);
+                }
+
+                // Keep Command Tracking dropdowns synchronized
+                if (commandsViewController != null) {
+                    commandsViewController.refreshProjects();
                 }
             });
 

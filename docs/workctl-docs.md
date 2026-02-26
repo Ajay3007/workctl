@@ -526,6 +526,32 @@ workctl ask <project> --insight
 
 ---
 
+### 6.10 Command Snippets
+
+```bash
+# Save a command string for future reference
+workctl cmd add docker "docker kill \$(docker ps -q)" -t "Kill all containers"
+
+# List saved commands
+workctl cmd list
+workctl cmd list git -p auth-service
+```
+
+Stored into markdown files inside `02_Commands`. Useful for tracking reusable CLI syntax.
+
+---
+
+### 6.11 Meetings
+
+```bash
+# Create a new meeting timestamp file
+workctl meeting redis-load-test "Weekly Sync"
+```
+
+Creates a standard meeting notes template inside the `03_Meetings/` folder associated with the specified project.
+
+---
+
 ## 7. GUI Features
 
 ### 7.1 Layout Overview

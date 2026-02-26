@@ -31,6 +31,9 @@ Complete reference for all CLI commands implemented in workctl.
 | `workctl ask --act` | Ask the AI agent with write mode enabled |
 | `workctl ask --weekly` | AI-powered weekly summary |
 | `workctl ask --insight` | AI-powered project health insights |
+| `workctl cmd add` | Add a reusable CLI command |
+| `workctl cmd list` | List saved CLI commands |
+| `workctl meeting` | Create a new meeting notes file |
 | `workctl config set` | Set a config value |
 | `workctl config get` | Get a config value |
 | `workctl config show` | Show all config |
@@ -644,6 +647,84 @@ workctl task subtask delete <project> <task-id> <subtask-index>
 ```bash
 workctl task subtask delete redis-load-test 3 2
 # ✔ Subtask 2 "Write tests" deleted from Task #3.
+```
+
+---
+
+# 💻 Command Snippets
+
+Commands are stored in `.md` files grouped by category under `02_Commands`.
+
+## `workctl cmd add`
+
+Saves a useful CLI exact string to the command tracking system for future reference.
+
+### Usage
+
+```bash
+workctl cmd add <category> "<command>" -t "<title>"
+workctl cmd add <category> "<command>" -t "<title>" -n "<notes>" -p <project>
+```
+
+### Options
+
+| Option | Short | Required | Description |
+|---|---|---|---|
+| `--title` | `-t` | ✅ Yes | Short description of what the command does |
+| `--notes` | `-n` | | Optional extended notes or explanation |
+| `--project` | `-p` | | The project scope this applies to (default: `GLOBAL`) |
+
+### Example
+
+```bash
+workctl cmd add docker "docker kill \$(docker ps -q)" -t "Kill all containers" -n "Forces stop all running containers"
+workctl cmd add git "git commit --amend --no-edit" -t "Amend last commit" -p redis-load-test
+```
+
+---
+
+## `workctl cmd list`
+
+Lists tracked CLI commands, optionally filtering by tool category or project scope.
+
+### Usage
+
+```bash
+workctl cmd list
+workctl cmd list <category>
+workctl cmd list <category> -p <project>
+```
+
+### Example
+
+```bash
+workctl cmd list docker
+workctl cmd list -p GLOBAL
+workctl cmd list git -p auth-service
+```
+
+---
+
+---
+
+# 🤝 Meetings
+
+## `workctl meeting`
+
+Creates a new timestamped meeting file under the global `03_Meetings/` directory linked to a specific project.
+
+### Usage
+
+```bash
+workctl meeting <project> "<title>"
+```
+
+### Example
+
+```bash
+workctl meeting redis-load-test "Weekly Sync"
+# Meeting created: Weekly Sync
+# Meeting ID: 75fa32-bc91-4475...
 ```
 
 ---

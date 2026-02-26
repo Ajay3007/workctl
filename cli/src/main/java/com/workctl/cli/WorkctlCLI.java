@@ -5,24 +5,20 @@ import com.workctl.cli.util.ConsolePrinter;
 import picocli.AutoComplete;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "workctl",
-        mixinStandardHelpOptions = true,
-        version = "workctl 0.1.0",
-        subcommands = {
-                InitCommand.class,
-                ProjectCommand.class,
-                LogCommand.class,
-                WeeklyCommand.class,
-                SearchCommand.class,
-                TaskCommand.class,
-                ConfigCommand.class,
-                StatsCommand.class,
-                InsightCommand.class,
-                AskCommand.class,
-                AutoComplete.GenerateCompletion.class
-        }
-)
+@CommandLine.Command(name = "workctl", mixinStandardHelpOptions = true, version = "workctl 0.1.0", subcommands = {
+        InitCommand.class,
+        ProjectCommand.class,
+        LogCommand.class,
+        WeeklyCommand.class,
+        SearchCommand.class,
+        TaskCommand.class,
+        ConfigCommand.class,
+        StatsCommand.class,
+        InsightCommand.class,
+        AskCommand.class,
+        CommandCmd.class,
+        AutoComplete.GenerateCompletion.class
+})
 public class WorkctlCLI implements Runnable {
 
     @Override

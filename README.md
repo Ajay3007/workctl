@@ -1,17 +1,17 @@
 # workctl
 
-**v1.1.0** · A hybrid CLI + GUI developer productivity system built in Java.
+**v1.2.0** · A hybrid CLI + GUI developer productivity system built in Java.
 
 Workctl combines structured Markdown storage, Kanban task tracking, subtask management, AI-powered assistance, and project workspace management — all filesystem-backed and version-control friendly.
 
 ---
 
-## What's New in 1.1.0
-- **Interview Preparation Tab:** A dedicated workspace per-interview featuring a custom task-like board for managing interview questions (add, edit, delete, mark done).
-- **Kanban "Done" Safeguard:** Moving a task with open subtasks to the "Done" column now triggers a confirmation dialog to prevent accidental closes.
-- **Enhanced Light Theme:** Light Theme is now the default, featuring significant improvements to text legibility, contrast, and visual hierarchy.
-- **Meeting detail view:** Click a meeting to view a full HTML-rendered "Web View" of the meeting agenda, attendees, and action items.
-- **Cleaned up Interface:** Simplified sidebar and better Dynamic Window Bounds that respect smaller screen sizes.
+## What's New in 1.2.0
+- **Command Tracking System:** A unified, searchable repository for CLI snippets, tools, and scripts stored in `02_Commands`.
+- **GUI Commands Tab:** A dedicated interface to browse commands by category, filter by active Project context, and instantly copy them to your clipboard.
+- **Auto-Populating Defaults:** First-time installations automatically generate a library of useful standard `workctl` commands to help you learn the system.
+- **Interactive First-Time Setup:** A fresh new GUI setup wizard explicitly guides new users through selecting their primary workspace directory.
+- **Kanban Resizability:** The Task Board columns are now housed within a SplitPane, enabling smooth horizontal resizing.
 
 ---
 
@@ -21,12 +21,12 @@ Pre-built portable binaries for Windows (no Java or JavaFX installation needed):
 
 | Package | Platform | Download |
 |---------|----------|----------|
-| GUI (JavaFX desktop app) | Windows | [workctl-gui-1.1.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.1.0) |
-| CLI (terminal tool) | Windows | [workctl-1.1.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.1.0) |
+| GUI (JavaFX desktop app) | Windows | [workctl-gui-1.2.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.2.0) |
+| CLI (terminal tool) | Windows | [workctl-1.2.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.2.0) |
 
 **Windows GUI:** Unzip → double-click `workctl-gui.exe`
 
-**Windows CLI:** Unzip → add the `workctl-1.1.0/` folder to PATH → run `workctl`
+**Windows CLI:** Unzip → add the `workctl-1.2.0/` folder to PATH → run `workctl`
 
 > macOS and Linux users: build from source (see [Getting Started](#getting-started) below).
 
@@ -38,6 +38,7 @@ Pre-built portable binaries for Windows (no Java or JavaFX installation needed):
 - 📝 Structured Markdown task engine
 - ✅ Hierarchical task + subtask system
 - 📊 Kanban board with drag & drop
+- 📋 Snippet Command Tracker
 - 🎯 Priority-driven task system
 - 📅 Date-aware metadata tracker
 - 🔍 Full-text task search
@@ -139,15 +140,22 @@ workctl config set editor code
 
 ```
 Workspace/
-└── 01_Projects/
-    └── <project-name>/
-        ├── README.md
-        ├── docs/
-        ├── src/
-        ├── logs/
-        └── notes/
-            ├── work-log.md
-            └── tasks.md
+├── 00_Inbox/
+├── 01_Projects/
+│   └── <project-name>/
+│       ├── README.md
+│       ├── docs/
+│       ├── src/
+│       ├── logs/
+│       └── notes/
+│           ├── work-log.md
+│           └── tasks.md
+├── 02_Commands/
+│   ├── git.md
+│   └── workctl.md
+├── 03_Meetings/
+├── 04_References/
+└── 99_Archive/
 ```
 
 ---
@@ -234,6 +242,13 @@ workctl config show
 workctl config set editor <name>
 workctl config set workspace <path>
 workctl config set anthropicApiKey <key>
+
+# Commands Tracking
+workctl cmd add <category> "<command>" -t "<title>" [-n "<notes>"] [-p "<project>"]
+workctl cmd list
+workctl cmd list <category>
+workctl cmd list --project <name>
+workctl cmd search "<keyword>"
 ```
 
 ### [For more on CLI API guide Refer -> CLI APIs](docs/cli-api.md)
@@ -258,6 +273,13 @@ workctl config set anthropicApiKey <key>
 - Results stay grouped in their status columns
 - Column headers show match count when filtering
 - One-click clear button to reset
+
+### Commands Tab
+
+- Grouped by Markdown Category Files (e.g., `git`, `docker`, `aws`)
+- Dynamically filter scope between `GLOBAL`, System `workctl` defaults, and Active Project Contexts.
+- "Add Command" Dialog creates Git-friendly markdown metadata definitions
+- One-click "Copy Command" buttons natively linked to system clipboard.
 
 ### Add / Update Task Dialog
 

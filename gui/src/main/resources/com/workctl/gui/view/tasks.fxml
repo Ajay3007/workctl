@@ -38,12 +38,13 @@
     <!-- ========================= -->
     <!-- Kanban Board              -->
     <!-- ========================= -->
-    <HBox spacing="14" VBox.vgrow="ALWAYS"
-          styleClass="kanban-board"
-          style="-fx-padding: 14;">
+    <SplitPane VBox.vgrow="ALWAYS"
+               styleClass="kanban-board"
+               style="-fx-padding: 14; -fx-background-color: transparent;"
+               dividerPositions="0.33, 0.66">
 
         <!-- OPEN column -->
-        <VBox HBox.hgrow="ALWAYS" spacing="0" styleClass="kanban-column">
+        <VBox spacing="0" styleClass="kanban-column">
             <HBox alignment="CENTER_LEFT" spacing="8" styleClass="kanban-col-header"
                   style="-fx-padding: 10 14 10 14;">
                 <Label text="&#9679;" style="-fx-text-fill: #fc8181; -fx-font-size: 10;"/>
@@ -56,7 +57,7 @@
         </VBox>
 
         <!-- IN PROGRESS column -->
-        <VBox HBox.hgrow="ALWAYS" spacing="0" styleClass="kanban-column">
+        <VBox spacing="0" styleClass="kanban-column">
             <HBox alignment="CENTER_LEFT" spacing="8" styleClass="kanban-col-header"
                   style="-fx-padding: 10 14 10 14;">
                 <Label text="&#9679;" style="-fx-text-fill: #f6ad55; -fx-font-size: 10;"/>
@@ -69,7 +70,7 @@
         </VBox>
 
         <!-- DONE column -->
-        <VBox HBox.hgrow="ALWAYS" spacing="0" styleClass="kanban-column">
+        <VBox spacing="0" styleClass="kanban-column">
             <HBox alignment="CENTER_LEFT" spacing="8" styleClass="kanban-col-header"
                   style="-fx-padding: 10 14 10 14;">
                 <Label text="&#9679;" style="-fx-text-fill: #68d391; -fx-font-size: 10;"/>
@@ -81,6 +82,6 @@
             </ScrollPane>
         </VBox>
 
-    </HBox>
+    </SplitPane>
 
 </VBox>
