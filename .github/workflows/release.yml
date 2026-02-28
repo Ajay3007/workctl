@@ -1,28 +1,35 @@
 name: Build and Release Binaries
 
 on:
-  release:
-    types: [published]
+  # Auto-trigger on version tag push (e.g., git tag v2.0.0 && git push --tags)
+  push:
+    tags:
+      - 'v*.*.*'
+  # Manual trigger — use to build an existing tag (e.g., v2.0.0 today)
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag to release (e.g., v1.2.0)'
+        description: 'Tag to release (e.g., v2.0.0)'
         required: true
-        default: 'v1.2.0'
+        default: 'v2.0.0'
 
 jobs:
   build-and-upload:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             suffix: windows
-          - os: macos-latest
+            javafx_platform: windows-x64
+          - os: macos-13          # Intel x64 — JavaFX 21 JMODs are x64-only
             suffix: macos
+            javafx_platform: osx-x64
           - os: ubuntu-latest
             suffix: linux
+            javafx_platform: linux-x64
 
     steps:
       - name: Checkout Code
@@ -35,23 +42,53 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
       - name: Make gradlew executable
+        if: runner.os != 'Windows'
         run: chmod +x ./gradlew
-        if: matrix.os != 'windows-latest'
 
-      - name: Build Native Packages
-        run: ./gradlew :cli:packageZip :gui:packageZip
+      # Download platform-specific JavaFX 21 JMODs — required by gui:packageApp
+      - name: Download JavaFX JMODs
+        id: javafx
+        shell: bash
+        run: |
+          JAVAFX_VERSION=21.0.5
+          PLATFORM=${{ matrix.javafx_platform }}
+          URL="https://download2.gluonhq.com/openjfx/${JAVAFX_VERSION}/openjfx-${JAVAFX_VERSION}_${PLATFORM}_bin-jmods.zip"
+          echo "Downloading: $URL"
+          curl -fsSL -o javafx-jmods.zip "$URL"
+          unzip -q javafx-jmods.zip -d javafx-jmods-extracted
+          JMODS_DIR=$(find javafx-jmods-extracted -maxdepth 1 -type d -name 'javafx-jmods-*' | head -1)
+          echo "jmods_dir=$JMODS_DIR" >> $GITHUB_OUTPUT
+          echo "JMODs directory: $JMODS_DIR"
+
+      - name: Build CLI Native Package
+        shell: bash
+        run: ./gradlew :cli:packageZip
+
+      - name: Build GUI Native Package
+        shell: bash
+        run: ./gradlew :gui:packageZip "-PjavafxJmods=${{ steps.javafx.outputs.jmods_dir }}"
+
+      - name: Resolve tag name
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name || github.event.release.tag_name }}
+          tag_name: ${{ steps.tag.outputs.name }}
           files: |
-            gui/build/distributions/workctl-gui-*-${{ matrix.suffix }}.zip
             cli/build/distributions/workctl-*-${{ matrix.suffix }}.zip
+            gui/build/distributions/workctl-gui-*-${{ matrix.suffix }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

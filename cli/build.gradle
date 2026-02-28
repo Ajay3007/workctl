@@ -172,8 +172,12 @@ tasks.register('packageNative', Exec) {
                 '--main-jar',     "cli-${version}.jar",
                 '--main-class',   application.mainClass.get(),
                 '--dest',         outDir.absolutePath,
-                '--win-console',  // keeps terminal output visible (ignored on macOS/Linux)
         ]
+
+        // --win-console keeps terminal output visible; only valid on Windows
+        if (isWindows) {
+            cmd += ['--win-console']
+        }
 
         // macOS: required bundle identifier
         if (isMacOS) {
