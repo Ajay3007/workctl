@@ -17,6 +17,8 @@ jobs:
   build-and-upload:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write   # required to create/update GitHub Releases
     strategy:
       fail-fast: false
       matrix:
