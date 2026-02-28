@@ -52,6 +52,8 @@ public class MainController {
     private InterviewController interviewViewController;
     @FXML
     private CommandController commandsViewController;
+    @FXML
+    private WorkflowController workflowsViewController;
 
     private final ProjectService projectService = new ProjectService();
     private final MeetingService meetingService = new MeetingService();

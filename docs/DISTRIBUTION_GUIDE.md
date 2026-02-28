@@ -1,5 +1,7 @@
 # workctl Distribution Guide
 
+> **[← README](../README.md)** | [CLI Reference](cli-api.md) | [Workflows Guide](workflows-guide.md) | [Setup](SETUP.md) | [Full Docs](workctl-docs.md)
+
 ## Which option should I use?
 
 | Scenario | Command | What you share | Java needed? |

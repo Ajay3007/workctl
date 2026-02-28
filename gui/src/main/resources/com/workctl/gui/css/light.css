@@ -1,12 +1,35 @@
 /* ═══════════════════════════════════════════════════════════════
-   workctl — Light Theme
-   Applied to Scene. Same style classes as dark.css, light colors.
+   workctl — Light Theme  (Refined Slate palette)
+   Applied to Scene. Use style classes to opt into theming.
+   ═══════════════════════════════════════════════════════════════
+
+   Palette reference:
+     bg-app     : #f4f6fb   cool off-white with subtle lavender tint
+     bg-surface : #ffffff   cards, panels — pure white for contrast
+     bg-hover   : #eef1fb   light indigo tint on hover
+     bg-selected: #e8eeff   selected state
+
+     border     : #dde3f0   blue-tinted dividers
+     border-hi  : #c7d2e8   stronger borders / active
+
+     accent     : #4f46e5   indigo (modern, softer than electric blue)
+     accent-hi  : #4338ca   accent hover
+
+     text-hi    : #0f172a   primary (near-black slate)
+     text-mid   : #374151   secondary
+     text-lo    : #64748b   muted
+
+     green      : #0d9488   done / success (teal, matches dark theme)
+     rose       : #e11d48   todo / error (rose)
+     amber      : #d97706   in-progress / warning
+     violet     : #7c3aed   guidance label
+     blue       : #0369a1   commands / expected
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Root ─────────────────────────────────────────────────────── */
 .root {
     -fx-base: #e2e8f0;
-    -fx-background: #f1f5f9;
+    -fx-background: #f4f6fb;
     -fx-control-inner-background: #ffffff;
     -fx-text-fill: #1e293b;
 }
@@ -14,13 +37,13 @@
 /* ── Sidebar ──────────────────────────────────────────────────── */
 .sidebar-root {
     -fx-background-color: #ffffff;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 0 1 0 0;
 }
 
 .sidebar-header {
     -fx-padding: 14 14 10 14;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 0 0 1 0;
 }
 
@@ -45,12 +68,12 @@
 }
 
 .theme-toggle:hover {
-    -fx-background-color: #e2e8f0;
+    -fx-background-color: #eef1fb;
     -fx-text-fill: #0f172a;
 }
 
 .new-project-btn {
-    -fx-background-color: #2563eb;
+    -fx-background-color: #4f46e5;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-font-size: 12;
@@ -60,14 +83,14 @@
 }
 
 .new-project-btn:hover {
-    -fx-background-color: #1d4ed8;
+    -fx-background-color: #4338ca;
 }
 
 .delete-project-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #ef4444;
+    -fx-text-fill: #dc2626;
     -fx-font-size: 11;
-    -fx-border-color: rgba(239, 68, 68, 0.3);
+    -fx-border-color: rgba(220, 38, 38, 0.3);
     -fx-border-radius: 6;
     -fx-background-radius: 6;
     -fx-padding: 6 12;
@@ -75,7 +98,7 @@
 }
 
 .delete-project-btn:hover {
-    -fx-background-color: rgba(239, 68, 68, 0.07);
+    -fx-background-color: rgba(220, 38, 38, 0.07);
 }
 
 .delete-project-btn:disabled {
@@ -98,28 +121,30 @@
 }
 
 .project-scroll .scroll-bar .thumb {
-    -fx-background-color: #cbd5e1;
+    -fx-background-color: #c7d2e8;
     -fx-background-radius: 4;
 }
 
+/* Project cards */
 .project-card {
-    -fx-background-color: #f8fafc;
-    -fx-border-color: #e2e8f0;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 1;
     -fx-border-radius: 7;
     -fx-background-radius: 7;
     -fx-cursor: hand;
     -fx-padding: 10 12 10 12;
+    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.05), 3, 0, 0, 1);
 }
 
 .project-card:hover {
-    -fx-background-color: #f1f5f9;
-    -fx-border-color: #cbd5e1;
+    -fx-background-color: #eef1fb;
+    -fx-border-color: #c7d2e8;
 }
 
 .project-card-selected {
-    -fx-background-color: #eff6ff;
-    -fx-border-color: #2563eb;
+    -fx-background-color: #e8eeff;
+    -fx-border-color: #4f46e5;
     -fx-border-width: 1.5;
     -fx-border-radius: 7;
     -fx-background-radius: 7;
@@ -133,7 +158,7 @@
 }
 
 .project-card-selected .project-card-name {
-    -fx-text-fill: #1e40af;
+    -fx-text-fill: #3730a3;
     -fx-font-weight: bold;
 }
 
@@ -143,18 +168,20 @@
 }
 
 .project-card-selected .project-card-icon {
-    -fx-text-fill: #2563eb;
+    -fx-text-fill: #4f46e5;
 }
 
 /* ── TabPane ──────────────────────────────────────────────────── */
 .main-tab-pane {
-    -fx-background-color: #f1f5f9;
+    -fx-background-color: #f4f6fb;
     -fx-tab-min-height: 32;
 }
 
 .main-tab-pane>.tab-header-area {
     -fx-background-color: #ffffff;
     -fx-padding: 2 0 0 2;
+    -fx-border-color: #dde3f0;
+    -fx-border-width: 0 0 1 0;
 }
 
 .main-tab-pane>.tab-header-area>.tab-header-background {
@@ -164,10 +191,14 @@
 .main-tab-pane>.tab-header-area>.headers-region>.tab {
     -fx-background-color: transparent;
     -fx-padding: 5 18;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 2 0;
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab:selected {
-    -fx-background-color: #f1f5f9;
+    -fx-background-color: transparent;
+    -fx-border-color: #4f46e5;
+    -fx-border-width: 0 0 2 0;
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab .tab-label {
@@ -176,38 +207,39 @@
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab:selected .tab-label {
-    -fx-text-fill: #0f172a;
+    -fx-text-fill: #4f46e5;
     -fx-font-weight: bold;
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab:hover .tab-label {
-    -fx-text-fill: #0f172a;
+    -fx-text-fill: #374151;
 }
 
 /* ── Kanban board ─────────────────────────────────────────────── */
 .kanban-root {
-    -fx-background-color: #f1f5f9;
+    -fx-background-color: #f4f6fb;
 }
 
 .kanban-toolbar {
     -fx-background-color: #ffffff;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 0 0 1 0;
 }
 
 .kanban-board {
-    -fx-background-color: #f1f5f9;
+    -fx-background-color: #f4f6fb;
 }
 
 .kanban-column {
     -fx-background-color: #ffffff;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-radius: 10;
     -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.06), 6, 0, 0, 2);
 }
 
 .kanban-col-header {
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 0 0 1 0;
 }
 
@@ -228,10 +260,11 @@
 }
 
 .kanban-col-scroll .scroll-bar .thumb {
-    -fx-background-color: #cbd5e1;
+    -fx-background-color: #c7d2e8;
     -fx-background-radius: 4;
 }
 
+/* Task cards */
 .task-card {
     -fx-background-color: #ffffff;
     -fx-background-radius: 8;
@@ -240,7 +273,7 @@
 }
 
 .task-card:hover {
-    -fx-background-color: #f8fafc;
+    -fx-background-color: #f8f9ff;
 }
 
 .task-id-label {
@@ -261,18 +294,18 @@
 }
 
 .task-info-btn {
-    -fx-background-color: #f1f5f9;
-    -fx-text-fill: #2563eb;
+    -fx-background-color: #eef1fb;
+    -fx-text-fill: #4f46e5;
     -fx-font-weight: bold;
     -fx-background-radius: 20;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #c7d2e8;
     -fx-border-radius: 20;
     -fx-border-width: 1;
     -fx-cursor: hand;
 }
 
 .task-info-btn:hover {
-    -fx-background-color: #e0e7ff;
+    -fx-background-color: #e8eeff;
 }
 
 .meeting-card-title {
@@ -281,8 +314,9 @@
     -fx-text-fill: #1e293b;
 }
 
+/* Kanban toolbar widgets */
 .add-task-btn {
-    -fx-background-color: #2563eb;
+    -fx-background-color: #4f46e5;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 6;
@@ -291,35 +325,53 @@
 }
 
 .add-task-btn:hover {
-    -fx-background-color: #1d4ed8;
+    -fx-background-color: #4338ca;
+}
+
+.action-btn {
+    -fx-background-color: #f4f6fb;
+    -fx-text-fill: #374151;
+    -fx-border-color: #dde3f0;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-font-size: 11;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+
+.action-btn:hover {
+    -fx-background-color: #eef1fb;
+    -fx-text-fill: #0f172a;
+    -fx-border-color: #4f46e5;
 }
 
 .search-field {
-    -fx-background-color: #f8fafc;
+    -fx-background-color: #ffffff;
     -fx-text-fill: #1e293b;
-    -fx-prompt-text-fill: #64748b;
+    -fx-prompt-text-fill: #94a3b8;
     -fx-background-radius: 16;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-radius: 16;
     -fx-padding: 5 12;
 }
 
 .search-icon {
-    -fx-text-fill: #64748b;
+    -fx-text-fill: #94a3b8;
     -fx-font-size: 13;
 }
 
 .clear-search-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #64748b;
+    -fx-text-fill: #94a3b8;
     -fx-font-size: 12;
     -fx-cursor: hand;
     -fx-padding: 4 8;
 }
 
+/* Toolbar buttons */
 .panel-toolbar {
     -fx-background-color: #ffffff;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 0 0 1 0;
 }
 
@@ -330,9 +382,9 @@
 }
 
 .panel-toolbar-btn {
-    -fx-background-color: #f1f5f9;
+    -fx-background-color: #f4f6fb;
     -fx-text-fill: #475569;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-font-size: 11;
@@ -341,13 +393,14 @@
 }
 
 .panel-toolbar-btn:hover {
-    -fx-background-color: #e2e8f0;
+    -fx-background-color: #eef1fb;
     -fx-text-fill: #0f172a;
 }
 
 .panel-toolbar-btn-active {
-    -fx-background-color: #2563eb;
+    -fx-background-color: #4f46e5;
     -fx-text-fill: white;
+    -fx-font-weight: bold;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-font-size: 11;
@@ -365,25 +418,26 @@
     -fx-font-size: 10;
 }
 
-/* ── Meeting cards (center tab) ───────────────────────────────── */
+/* ── Meeting cards ────────────────────────────────────────────── */
 .meeting-card {
-    -fx-background-color: #f8fafc;
-    -fx-border-color: #e2e8f0;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 1;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
     -fx-cursor: hand;
     -fx-padding: 11 14 11 14;
+    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.05), 3, 0, 0, 1);
 }
 
 .meeting-card:hover {
-    -fx-background-color: #f1f5f9;
-    -fx-border-color: #cbd5e1;
+    -fx-background-color: #f8f9ff;
+    -fx-border-color: #c7d2e8;
 }
 
 .meeting-status-scheduled {
-    -fx-background-color: #eff6ff;
-    -fx-text-fill: #2563eb;
+    -fx-background-color: #eef1fb;
+    -fx-text-fill: #4f46e5;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -391,8 +445,8 @@
 }
 
 .meeting-status-done {
-    -fx-background-color: #f0fdf4;
-    -fx-text-fill: #16a34a;
+    -fx-background-color: #ccfbf1;
+    -fx-text-fill: #0d9488;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -411,18 +465,19 @@
 }
 
 .interview-card {
-    -fx-background-color: #f8fafc;
-    -fx-border-color: #e2e8f0;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 1;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
     -fx-cursor: hand;
     -fx-padding: 11 14 11 14;
+    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.05), 3, 0, 0, 1);
 }
 
 .interview-card:hover {
-    -fx-background-color: #f1f5f9;
-    -fx-border-color: #cbd5e1;
+    -fx-background-color: #f8f9ff;
+    -fx-border-color: #c7d2e8;
 }
 
 .interview-result-pending {
@@ -435,8 +490,8 @@
 }
 
 .interview-result-offered {
-    -fx-background-color: #f0fdf4;
-    -fx-text-fill: #16a34a;
+    -fx-background-color: #ccfbf1;
+    -fx-text-fill: #0d9488;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -444,8 +499,8 @@
 }
 
 .interview-result-rejected {
-    -fx-background-color: #fef2f2;
-    -fx-text-fill: #dc2626;
+    -fx-background-color: #ffe4e6;
+    -fx-text-fill: #e11d48;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -453,8 +508,8 @@
 }
 
 .interview-round-badge {
-    -fx-background-color: #eff6ff;
-    -fx-text-fill: #2563eb;
+    -fx-background-color: #eef1fb;
+    -fx-text-fill: #4f46e5;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -464,13 +519,14 @@
 .prep-topic-category {
     -fx-text-fill: #0f172a;
     -fx-font-weight: bold;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 0 0 1 0;
 }
 
+/* Weekly Report toolbar */
 .report-toolbar {
     -fx-background-color: #ffffff;
-    -fx-border-color: #e2e8f0;
+    -fx-border-color: #dde3f0;
     -fx-border-width: 0 0 1 0;
 }
 
@@ -479,10 +535,79 @@
 }
 
 .report-toolbar .date-picker>.text-field {
-    -fx-background-color: #f8fafc;
+    -fx-background-color: #ffffff;
     -fx-text-fill: #1e293b;
 }
 
 .report-toolbar .date-picker .arrow-button {
-    -fx-background-color: #f1f5f9;
+    -fx-background-color: #f4f6fb;
+}
+
+/* ── Workflow Styles ──────────────────────────────────────────── */
+
+.workflow-detail-root {
+    -fx-background-color: #f4f6fb;
+}
+
+.workflow-run-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dde3f0;
+    -fx-border-width: 0 0 1 0;
+}
+
+.workflow-step-row {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e11d48;
+    -fx-border-width: 0 0 0 3;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.07), 5, 0, 0, 2);
+}
+
+.workflow-step-done {
+    -fx-border-color: #0d9488;
+}
+
+.workflow-step-skipped {
+    -fx-border-color: #c7d2e8;
+    -fx-opacity: 0.65;
+}
+
+.workflow-step-todo {
+    -fx-border-color: #e11d48;
+}
+
+.step-number-badge {
+    -fx-background-color: #eef1fb;
+    -fx-background-radius: 50;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-text-fill: #4f46e5;
+}
+
+.step-status-done    { -fx-text-fill: #0d9488; -fx-font-weight: bold; }
+.step-status-skipped { -fx-text-fill: #94a3b8; }
+.step-status-todo    { -fx-text-fill: #e11d48; }
+
+/* Step title — overrides inline style in WorkflowController */
+.step-title-text { -fx-text-fill: #0f172a; }
+
+.workflow-status-badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8;
+    -fx-background-radius: 10;
+    -fx-background-color: #fef3c7;
+    -fx-text-fill: #d97706;
+}
+
+.danger-btn {
+    -fx-font-size: 11px;
+    -fx-text-fill: #dc2626;
+    -fx-background-color: transparent;
+}
+
+.danger-btn:hover {
+    -fx-background-color: rgba(220, 38, 38, 0.08);
+    -fx-background-radius: 4;
 }

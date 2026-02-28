@@ -1,43 +1,65 @@
 /* ═══════════════════════════════════════════════════════════════
-   workctl — Dark Theme
+   workctl — Dark Theme  (Tokyo Night palette)
    Applied to Scene. Use style classes to opt into theming.
+   ═══════════════════════════════════════════════════════════════
+
+   Palette reference:
+     bg-base    : #0d1117   pure dark (app root)
+     bg-1       : #161b27   sidebar / left panel
+     bg-2       : #1e2235   cards, headers, elevated surfaces
+     bg-3       : #252b40   hover / active / pressed
+     border     : #2a3248   blue-tinted dividers
+     border-hi  : #3d4d6a   visible separators
+
+     accent     : #7aa2f7   soft cornflower blue
+     accent-hi  : #91b4ff   accent hover
+
+     text-hi    : #c0caf5   primary text (lavender-white)
+     text-mid   : #a9b1d6   secondary / labels
+     text-lo    : #787c99   muted / hints
+
+     green      : #73daca   done / success (teal)
+     rose       : #f7768e   todo / error (rose-pink)
+     gold       : #e0af68   in-progress / warning
+     purple     : #bb9af7   guidance / special
+     cyan       : #7dcfff   commands / code
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Root ─────────────────────────────────────────────────────── */
 .root {
-    -fx-base: #1a1d2e;
-    -fx-background: #0d0f17;
-    -fx-control-inner-background: #1a1d2e;
-    -fx-text-fill: #e2e8f0;
+    -fx-base: #1e2235;
+    -fx-background: #0d1117;
+    -fx-control-inner-background: #1e2235;
+    -fx-text-fill: #c0caf5;
 }
 
 /* ── Sidebar ──────────────────────────────────────────────────── */
 .sidebar-root {
-    -fx-background-color: #0d0f17;
-    -fx-border-color: #2d3748;
+    -fx-background-color: #161b27;
+    -fx-border-color: #2a3248;
     -fx-border-width: 0 1 0 0;
 }
 
 .sidebar-header {
     -fx-padding: 14 14 10 14;
-    -fx-border-color: #2d3748;
+    -fx-border-color: #2a3248;
     -fx-border-width: 0 0 1 0;
 }
 
 .sidebar-title {
-    -fx-text-fill: #f7fafc;
+    -fx-text-fill: #c0caf5;
     -fx-font-size: 13;
     -fx-font-weight: bold;
 }
 
 .sidebar-count {
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 11;
 }
 
 .theme-toggle {
     -fx-background-color: transparent;
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 14;
     -fx-padding: 2 5;
     -fx-cursor: hand;
@@ -45,13 +67,13 @@
 }
 
 .theme-toggle:hover {
-    -fx-background-color: #2d3748;
-    -fx-text-fill: #e2e8f0;
+    -fx-background-color: #252b40;
+    -fx-text-fill: #c0caf5;
 }
 
 .new-project-btn {
-    -fx-background-color: #1d4ed8;
-    -fx-text-fill: white;
+    -fx-background-color: #7aa2f7;
+    -fx-text-fill: #0d1117;
     -fx-font-weight: bold;
     -fx-font-size: 12;
     -fx-background-radius: 6;
@@ -60,14 +82,14 @@
 }
 
 .new-project-btn:hover {
-    -fx-background-color: #2563eb;
+    -fx-background-color: #91b4ff;
 }
 
 .delete-project-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #fc8181;
+    -fx-text-fill: #f7768e;
     -fx-font-size: 11;
-    -fx-border-color: rgba(239, 68, 68, 0.3);
+    -fx-border-color: rgba(247, 118, 142, 0.3);
     -fx-border-radius: 6;
     -fx-background-radius: 6;
     -fx-padding: 6 12;
@@ -75,7 +97,7 @@
 }
 
 .delete-project-btn:hover {
-    -fx-background-color: rgba(239, 68, 68, 0.1);
+    -fx-background-color: rgba(247, 118, 142, 0.1);
 }
 
 .delete-project-btn:disabled {
@@ -99,14 +121,14 @@
 }
 
 .project-scroll .scroll-bar .thumb {
-    -fx-background-color: #2d3748;
+    -fx-background-color: #2a3248;
     -fx-background-radius: 4;
 }
 
 /* Project cards */
 .project-card {
-    -fx-background-color: #12141f;
-    -fx-border-color: #2d3748;
+    -fx-background-color: #1a1f32;
+    -fx-border-color: #2a3248;
     -fx-border-width: 1;
     -fx-border-radius: 7;
     -fx-background-radius: 7;
@@ -115,13 +137,13 @@
 }
 
 .project-card:hover {
-    -fx-background-color: #1a1d2e;
-    -fx-border-color: #3d4d5e;
+    -fx-background-color: #1e2235;
+    -fx-border-color: #3d4d6a;
 }
 
 .project-card-selected {
-    -fx-background-color: #172038;
-    -fx-border-color: #2563eb;
+    -fx-background-color: #1c2d4a;
+    -fx-border-color: #7aa2f7;
     -fx-border-width: 1.5;
     -fx-border-radius: 7;
     -fx-background-radius: 7;
@@ -130,91 +152,97 @@
 }
 
 .project-card-name {
-    -fx-text-fill: #d1d5db;
+    -fx-text-fill: #a9b1d6;
     -fx-font-size: 12;
 }
 
 .project-card-selected .project-card-name {
-    -fx-text-fill: #f7fafc;
+    -fx-text-fill: #c0caf5;
     -fx-font-weight: bold;
 }
 
 .project-card-icon {
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 12;
 }
 
 .project-card-selected .project-card-icon {
-    -fx-text-fill: #63b3ed;
+    -fx-text-fill: #7aa2f7;
 }
 
 /* ── TabPane ──────────────────────────────────────────────────── */
 .main-tab-pane {
-    -fx-background-color: #0d0f17;
+    -fx-background-color: #0d1117;
     -fx-tab-min-height: 32;
 }
 
 .main-tab-pane>.tab-header-area {
-    -fx-background-color: #12141f;
+    -fx-background-color: #161b27;
     -fx-padding: 2 0 0 2;
+    -fx-border-color: #2a3248;
+    -fx-border-width: 0 0 1 0;
 }
 
 .main-tab-pane>.tab-header-area>.tab-header-background {
-    -fx-background-color: #12141f;
+    -fx-background-color: #161b27;
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab {
     -fx-background-color: transparent;
     -fx-padding: 5 18;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 2 0;
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab:selected {
-    -fx-background-color: #0d0f17;
+    -fx-background-color: transparent;
+    -fx-border-color: #7aa2f7;
+    -fx-border-width: 0 0 2 0;
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab .tab-label {
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 12;
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab:selected .tab-label {
-    -fx-text-fill: #f7fafc;
+    -fx-text-fill: #c0caf5;
     -fx-font-weight: bold;
 }
 
 .main-tab-pane>.tab-header-area>.headers-region>.tab:hover .tab-label {
-    -fx-text-fill: #a0aec0;
+    -fx-text-fill: #a9b1d6;
 }
 
 /* ── Kanban board ─────────────────────────────────────────────── */
 .kanban-root {
-    -fx-background-color: #0d0f17;
+    -fx-background-color: #0d1117;
 }
 
 .kanban-toolbar {
-    -fx-background-color: #1a1d2e;
-    -fx-border-color: #2d3748;
+    -fx-background-color: #161b27;
+    -fx-border-color: #2a3248;
     -fx-border-width: 0 0 1 0;
 }
 
 .kanban-board {
-    -fx-background-color: #0d0f17;
+    -fx-background-color: #0d1117;
 }
 
 .kanban-column {
-    -fx-background-color: #12141f;
-    -fx-border-color: #2d3748;
+    -fx-background-color: #161b27;
+    -fx-border-color: #2a3248;
     -fx-border-radius: 10;
     -fx-background-radius: 10;
 }
 
 .kanban-col-header {
-    -fx-border-color: #2d3748;
+    -fx-border-color: #2a3248;
     -fx-border-width: 0 0 1 0;
 }
 
 .kanban-col-title {
-    -fx-text-fill: #f7fafc;
+    -fx-text-fill: #c0caf5;
     -fx-font-weight: bold;
     -fx-font-size: 13;
 }
@@ -230,64 +258,64 @@
 }
 
 .kanban-col-scroll .scroll-bar .thumb {
-    -fx-background-color: #2d3748;
+    -fx-background-color: #2a3248;
     -fx-background-radius: 4;
 }
 
 /* Task cards */
 .task-card {
-    -fx-background-color: #1a1d2e;
+    -fx-background-color: #1e2235;
     -fx-background-radius: 8;
     -fx-border-radius: 8;
     -fx-border-width: 1.5;
 }
 
 .task-card:hover {
-    -fx-background-color: #212540;
+    -fx-background-color: #252b40;
 }
 
 .task-id-label {
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 11;
     -fx-font-weight: bold;
 }
 
 .task-title-label {
-    -fx-text-fill: #e2e8f0;
+    -fx-text-fill: #c0caf5;
     -fx-font-weight: bold;
     -fx-font-size: 13;
 }
 
 .task-subtask-count {
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 10;
 }
 
 .task-info-btn {
-    -fx-background-color: #2d3748;
-    -fx-text-fill: #63b3ed;
+    -fx-background-color: #252b40;
+    -fx-text-fill: #7aa2f7;
     -fx-font-weight: bold;
     -fx-background-radius: 20;
-    -fx-border-color: #4a5568;
+    -fx-border-color: #3d4d6a;
     -fx-border-radius: 20;
     -fx-border-width: 1;
     -fx-cursor: hand;
 }
 
 .task-info-btn:hover {
-    -fx-background-color: #3d4d5e;
+    -fx-background-color: #2a3248;
 }
 
 .meeting-card-title {
     -fx-font-weight: bold;
     -fx-font-size: 13px;
-    -fx-text-fill: #e2e8f0;
+    -fx-text-fill: #c0caf5;
 }
 
 /* Kanban toolbar widgets */
 .add-task-btn {
-    -fx-background-color: #2563eb;
-    -fx-text-fill: white;
+    -fx-background-color: #7aa2f7;
+    -fx-text-fill: #0d1117;
     -fx-font-weight: bold;
     -fx-background-radius: 6;
     -fx-cursor: hand;
@@ -295,27 +323,44 @@
 }
 
 .add-task-btn:hover {
-    -fx-background-color: #1d4ed8;
+    -fx-background-color: #91b4ff;
+}
+
+.action-btn {
+    -fx-background-color: #252b40;
+    -fx-text-fill: #a9b1d6;
+    -fx-border-color: #3d4d6a;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-font-size: 11;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+
+.action-btn:hover {
+    -fx-background-color: #2a3248;
+    -fx-text-fill: #c0caf5;
+    -fx-border-color: #7aa2f7;
 }
 
 .search-field {
-    -fx-background-color: #2d3748;
-    -fx-text-fill: #e2e8f0;
-    -fx-prompt-text-fill: #718096;
+    -fx-background-color: #1e2235;
+    -fx-text-fill: #c0caf5;
+    -fx-prompt-text-fill: #787c99;
     -fx-background-radius: 16;
-    -fx-border-color: #4a5568;
+    -fx-border-color: #3d4d6a;
     -fx-border-radius: 16;
     -fx-padding: 5 12;
 }
 
 .search-icon {
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 13;
 }
 
 .clear-search-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 12;
     -fx-cursor: hand;
     -fx-padding: 4 8;
@@ -323,21 +368,21 @@
 
 /* Toolbar buttons (Logs, Stats panels) */
 .panel-toolbar {
-    -fx-background-color: #1a1d2e;
-    -fx-border-color: #2d3748;
+    -fx-background-color: #161b27;
+    -fx-border-color: #2a3248;
     -fx-border-width: 0 0 1 0;
 }
 
 .panel-toolbar-title {
-    -fx-text-fill: #f7fafc;
+    -fx-text-fill: #c0caf5;
     -fx-font-size: 13;
     -fx-font-weight: bold;
 }
 
 .panel-toolbar-btn {
-    -fx-background-color: #2d3748;
-    -fx-text-fill: #a0aec0;
-    -fx-border-color: #4a5568;
+    -fx-background-color: #1e2235;
+    -fx-text-fill: #a9b1d6;
+    -fx-border-color: #3d4d6a;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-font-size: 11;
@@ -346,12 +391,13 @@
 }
 
 .panel-toolbar-btn:hover {
-    -fx-background-color: #3d4d5e;
+    -fx-background-color: #252b40;
 }
 
 .panel-toolbar-btn-active {
-    -fx-background-color: #3182ce;
-    -fx-text-fill: white;
+    -fx-background-color: #7aa2f7;
+    -fx-text-fill: #0d1117;
+    -fx-font-weight: bold;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-font-size: 11;
@@ -360,19 +406,19 @@
 }
 
 .panel-status {
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 11;
 }
 
 .panel-refresh {
-    -fx-text-fill: #718096;
+    -fx-text-fill: #787c99;
     -fx-font-size: 10;
 }
 
-/* ── Meeting cards (center tab) ───────────────────────────────── */
+/* ── Meeting cards ────────────────────────────────────────────── */
 .meeting-card {
-    -fx-background-color: #12141f;
-    -fx-border-color: #2d3748;
+    -fx-background-color: #1a1f32;
+    -fx-border-color: #2a3248;
     -fx-border-width: 1;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
@@ -381,13 +427,13 @@
 }
 
 .meeting-card:hover {
-    -fx-background-color: #1a1d2e;
-    -fx-border-color: #3d4d5e;
+    -fx-background-color: #1e2235;
+    -fx-border-color: #3d4d6a;
 }
 
 .meeting-status-scheduled {
-    -fx-background-color: rgba(59, 130, 246, 0.18);
-    -fx-text-fill: #60a5fa;
+    -fx-background-color: rgba(122, 162, 247, 0.18);
+    -fx-text-fill: #7aa2f7;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -395,8 +441,8 @@
 }
 
 .meeting-status-done {
-    -fx-background-color: rgba(34, 197, 94, 0.15);
-    -fx-text-fill: #4ade80;
+    -fx-background-color: rgba(115, 218, 202, 0.18);
+    -fx-text-fill: #73daca;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -405,18 +451,18 @@
 
 /* ── Interview cards ──────────────────────────────────────────── */
 .interview-card-title {
-    -fx-text-fill: #e2e8f0;
+    -fx-text-fill: #c0caf5;
     -fx-font-weight: bold;
 }
 
 .interview-card-role {
-    -fx-text-fill: #a0aec0;
+    -fx-text-fill: #a9b1d6;
     -fx-font-size: 12;
 }
 
 .interview-card {
-    -fx-background-color: #12141f;
-    -fx-border-color: #2d3748;
+    -fx-background-color: #1a1f32;
+    -fx-border-color: #2a3248;
     -fx-border-width: 1;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
@@ -425,13 +471,13 @@
 }
 
 .interview-card:hover {
-    -fx-background-color: #1a1d2e;
-    -fx-border-color: #3d4d5e;
+    -fx-background-color: #1e2235;
+    -fx-border-color: #3d4d6a;
 }
 
 .interview-result-pending {
-    -fx-background-color: rgba(148, 163, 184, 0.15);
-    -fx-text-fill: #94a3b8;
+    -fx-background-color: rgba(169, 177, 214, 0.15);
+    -fx-text-fill: #a9b1d6;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -439,8 +485,8 @@
 }
 
 .interview-result-offered {
-    -fx-background-color: rgba(34, 197, 94, 0.15);
-    -fx-text-fill: #4ade80;
+    -fx-background-color: rgba(115, 218, 202, 0.15);
+    -fx-text-fill: #73daca;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -448,8 +494,8 @@
 }
 
 .interview-result-rejected {
-    -fx-background-color: rgba(239, 68, 68, 0.15);
-    -fx-text-fill: #f87171;
+    -fx-background-color: rgba(247, 118, 142, 0.15);
+    -fx-text-fill: #f7768e;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -457,8 +503,8 @@
 }
 
 .interview-round-badge {
-    -fx-background-color: rgba(99, 179, 237, 0.15);
-    -fx-text-fill: #63b3ed;
+    -fx-background-color: rgba(122, 162, 247, 0.15);
+    -fx-text-fill: #7aa2f7;
     -fx-font-size: 10;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
@@ -466,28 +512,96 @@
 }
 
 .prep-topic-category {
-    -fx-text-fill: #f7fafc;
+    -fx-text-fill: #c0caf5;
     -fx-font-weight: bold;
-    -fx-border-color: #2d3748;
+    -fx-border-color: #2a3248;
     -fx-border-width: 0 0 1 0;
 }
 
 /* Weekly Report toolbar */
 .report-toolbar {
-    -fx-background-color: #1a1d2e;
-    -fx-border-color: #2d3748;
+    -fx-background-color: #161b27;
+    -fx-border-color: #2a3248;
     -fx-border-width: 0 0 1 0;
 }
 
 .report-toolbar .label {
-    -fx-text-fill: #e2e8f0;
+    -fx-text-fill: #c0caf5;
 }
 
 .report-toolbar .date-picker>.text-field {
-    -fx-background-color: #2d3748;
-    -fx-text-fill: #e2e8f0;
+    -fx-background-color: #1e2235;
+    -fx-text-fill: #c0caf5;
 }
 
 .report-toolbar .date-picker .arrow-button {
-    -fx-background-color: #2d3748;
+    -fx-background-color: #1e2235;
+}
+
+/* ── Workflow Styles ──────────────────────────────────────────── */
+
+.workflow-detail-root {
+    -fx-background-color: #0d1117;
+}
+
+.workflow-run-header {
+    -fx-background-color: #161b27;
+    -fx-border-color: #2a3248;
+    -fx-border-width: 0 0 1 0;
+}
+
+.workflow-step-row {
+    -fx-background-color: #1e2235;
+    -fx-border-color: #f7768e;
+    -fx-border-width: 0 0 0 3;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 5, 0, 0, 2);
+}
+
+.workflow-step-done {
+    -fx-border-color: #73daca;
+}
+
+.workflow-step-skipped {
+    -fx-border-color: #3d4d6a;
+    -fx-opacity: 0.5;
+}
+
+.workflow-step-todo {
+    -fx-border-color: #f7768e;
+}
+
+.step-number-badge {
+    -fx-background-color: #252b40;
+    -fx-background-radius: 50;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-text-fill: #7aa2f7;
+}
+
+.step-status-done    { -fx-text-fill: #73daca; -fx-font-weight: bold; }
+.step-status-skipped { -fx-text-fill: #565f89; }
+.step-status-todo    { -fx-text-fill: #f7768e; }
+
+.step-title-text { -fx-text-fill: #c0caf5; }
+
+.workflow-status-badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8;
+    -fx-background-radius: 10;
+    -fx-background-color: rgba(224, 175, 104, 0.15);
+    -fx-text-fill: #e0af68;
+}
+
+.danger-btn {
+    -fx-font-size: 11px;
+    -fx-text-fill: #f7768e;
+    -fx-background-color: transparent;
+}
+
+.danger-btn:hover {
+    -fx-background-color: rgba(247, 118, 142, 0.12);
+    -fx-background-radius: 4;
 }

@@ -2,115 +2,244 @@
 
 **v1.2.0** · A hybrid CLI + GUI developer productivity system built in Java.
 
-Workctl combines structured Markdown storage, Kanban task tracking, subtask management, AI-powered assistance, and project workspace management — all filesystem-backed and version-control friendly.
-
----
-
-## What's New in 1.2.0
-- **Command Tracking System:** A unified, searchable repository for CLI snippets, tools, and scripts stored in `02_Commands`.
-- **GUI Commands Tab:** A dedicated interface to browse commands by category, filter by active Project context, and instantly copy them to your clipboard.
-- **Auto-Populating Defaults:** First-time installations automatically generate a library of useful standard `workctl` commands to help you learn the system.
-- **Interactive First-Time Setup:** A fresh new GUI setup wizard explicitly guides new users through selecting their primary workspace directory.
-- **Kanban Resizability:** The Task Board columns are now housed within a SplitPane, enabling smooth horizontal resizing.
-
----
-
-## Download
-
-Pre-built portable binaries for Windows (no Java or JavaFX installation needed):
-
-| Package | Platform | Download |
-|---------|----------|----------|
-| GUI (JavaFX desktop app) | Windows | [workctl-gui-1.2.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.2.0) |
-| CLI (terminal tool) | Windows | [workctl-1.2.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.2.0) |
-
-**Windows GUI:** Unzip → double-click `workctl-gui.exe`
-
-**Windows CLI:** Unzip → add the `workctl-1.2.0/` folder to PATH → run `workctl`
-
-> macOS and Linux users: build from source (see [Getting Started](#getting-started) below).
+Workctl helps developers manage projects, track tasks, document procedures, log work, run AI-assisted analysis, and build a personal command reference — all stored as plain Markdown files on your filesystem. No database. No cloud dependency. Fully Git-versionable.
 
 ---
 
 ## What Workctl Is
 
-- 📁 Project workspace manager
-- 📝 Structured Markdown task engine
-- ✅ Hierarchical task + subtask system
-- 📊 Kanban board with drag & drop
-- 📋 Snippet Command Tracker
-- 🎯 Priority-driven task system
-- 📅 Date-aware metadata tracker
-- 🔍 Full-text task search
-- 🤖 AI agent powered by Claude (read + write modes)
-- 🖥 JavaFX desktop application
-- ⚙ CLI-first automation tool
-- 📂 Git-friendly filesystem database
+| Capability | Description |
+| --- | --- |
+| **Task Kanban** | Open → In Progress → Done board with priorities, subtasks, and drag & drop |
+| **Work Logging** | Structured daily logs with sections (Assigned, Done, Notes, Commands) |
+| **Command Library** | Personal searchable reference for Linux, Docker, Git, and any CLI commands |
+| **Workflows** | Reusable step-by-step procedure templates with per-run execution tracking |
+| **Meetings** | Meeting notes creation and management per project |
+| **Interviews** | Interview tracking with questions, ratings, and outcomes |
+| **Weekly Reports** | Auto-generated summaries across a date range |
+| **Stats & Insights** | Productivity score, completion rates, stagnation detection |
+| **AI Agent** | Claude-powered assistant embedded in both CLI and GUI (read + write modes) |
+| **CLI-first** | Every operation works from the terminal; GUI enhances but never requires it |
+| **Filesystem storage** | All data lives in `.md` files — human-readable and Git-friendly |
 
 ---
 
-## Project Structure
+## Documentation
 
-Gradle multi-module project:
-
-```
-workctl/
-│
-├── core/      → Business logic (tasks, subtasks, logs, stats, parsing engine)
-├── cli/       → Command-line interface (Picocli)
-├── gui/       → JavaFX desktop application
-├── config/    → YAML config management
-└── agent/     → AI agent module (Claude API, tool loop, context builder)
-```
-
-### Layered Design
-
-```
-CLI  ──────────┐
-               │
-GUI  ──────────┼──► Core Services ─► Markdown Engine ─► Filesystem
-               │
-Agent ─────────┘
-```
+| Guide | What it covers |
+| --- | --- |
+| [Quick Setup →](docs/SETUP.md) | Prerequisites, install, init workspace, PATH config |
+| [CLI Reference →](docs/cli-api.md) | Every command, flag, and option with examples |
+| [Workflows Guide →](docs/workflows-guide.md) | Templates, runs, step tracking (CLI + GUI) |
+| [Distribution Guide →](docs/DISTRIBUTION_GUIDE.md) | Build, package, and distribute workctl |
+| [Full Technical Reference →](docs/workctl-docs.md) | Architecture, data formats, module internals |
 
 ---
 
 ## Getting Started
 
-New to workctl? See the full setup guide: **[docs/SETUP.md](docs/SETUP.md)**
+New to workctl? Start here: **[docs/SETUP.md](docs/SETUP.md)**
 
-It covers prerequisites, PATH setup, first-time init, tab completion, and the `workctl-build` developer shortcut for all platforms.
+Covers prerequisites, PATH setup, workspace initialization, and your first project.
 
-## Building
+### Quick Install (Windows — no Java needed)
+
+| Package | Download |
+| --- | --- |
+| GUI (desktop app) | [workctl-gui-1.2.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.2.0) |
+| CLI (terminal tool) | [workctl-1.2.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.2.0) |
+
+**GUI:** Unzip → double-click `workctl-gui.exe`
+**CLI:** Unzip → add folder to PATH → run `workctl`
+
+> macOS / Linux: build from source (see [SETUP.md](docs/SETUP.md))
+
+### Build from Source
 
 ```bash
-# macOS / Linux
+# Build everything
 ./gradlew clean build
 
-# Windows
-gradlew.bat clean build
-```
-
-## Running
-
-### CLI
-
-```bash
-# macOS / Linux
+# Run CLI
 ./gradlew :cli:installDist
+./cli/build/install/cli/bin/cli <command>
 
-# Windows
-gradlew.bat :cli:installDist
+# Run GUI
+./gradlew :gui:run
 ```
 
-### GUI
+### First-Time Setup
 
 ```bash
-# macOS / Linux
-./gradlew :gui:run
+# 1. Initialize workspace
+workctl init --workspace /path/to/workspace
 
-# Windows
-gradlew.bat :gui:run
+# 2. Set API key for AI features (optional)
+workctl config set anthropicApiKey sk-ant-...
+
+# 3. Create a project
+workctl project create my-project --description "My first project"
+
+# 4. Add a task
+workctl task add my-project "Set up development environment" -p 1
+
+# 5. Start working
+workctl task list my-project
+```
+
+---
+
+## CLI Quick Reference
+
+Full reference: **[docs/cli-api.md](docs/cli-api.md)**
+
+```bash
+# ── Workspace & Projects ─────────────────────────────────────────────
+workctl init --workspace <path>
+workctl project create <name> --description "text"
+workctl project list
+
+# ── Tasks ────────────────────────────────────────────────────────────
+workctl task add <project> "Task title" -p 1          # P1=high, P2=med, P3=low
+workctl task list <project>
+workctl task start <project> <id>
+workctl task done <project> <id>
+workctl task show <project> <id>
+workctl task delete <project> -id <id>
+
+# ── Subtasks ─────────────────────────────────────────────────────────
+workctl task subtask add <project> <task-id> "Subtask title"
+workctl task subtask list <project> <task-id>
+workctl task subtask done <project> <task-id> <index>
+workctl task subtask delete <project> <task-id> <index>
+
+# ── Work Logging ─────────────────────────────────────────────────────
+workctl log <project> --message "Deployed auth service"
+workctl log <project> --section done --message "Completed API integration"
+
+# ── Workflows ────────────────────────────────────────────────────────
+workctl flow template new "Release Checklist" --tags "release"
+workctl flow template step-add <template-id> "Run all tests" --expected "All green"
+workctl flow template list
+workctl flow new "Release v1.3.0" --template <id> --project my-project
+workctl flow list --project my-project
+workctl flow show <run-id>
+workctl flow step done <run-id> 1
+workctl flow step note <run-id> 1 --message "All 47 tests passed"
+workctl flow step skip <run-id> 2
+
+# ── Reports & Search ─────────────────────────────────────────────────
+workctl weekly <project>
+workctl weekly <project> --from 2026-02-11 --to 2026-02-17
+workctl search <keyword>
+workctl stats <project>
+workctl insight <project>
+
+# ── Command Library ───────────────────────────────────────────────────
+workctl cmd add docker "docker ps -a" -t "List all containers"
+workctl cmd list
+workctl cmd list <category>
+workctl cmd search "<keyword>"
+
+# ── Meetings ─────────────────────────────────────────────────────────
+workctl meeting <project> "Sprint Planning"
+
+# ── AI Agent ─────────────────────────────────────────────────────────
+workctl ask <project> "What did I work on this week?"
+workctl ask <project> --act "Break this goal into tasks"
+workctl ask <project> --weekly
+workctl ask <project> --insight
+
+# ── Config ───────────────────────────────────────────────────────────
+workctl config show
+workctl config set workspace <path>
+workctl config set editor code
+workctl config set anthropicApiKey sk-ant-...
+```
+
+---
+
+## GUI Overview
+
+Launch with `./gradlew :gui:run` or double-click `workctl-gui.exe`.
+
+The GUI has a **project sidebar** on the left and **nine tabs** on the right — all sharing the selected project context.
+
+### Tabs at a Glance
+
+| Tab | What you do there |
+| --- | --- |
+| **Tasks** | Kanban board — drag cards between Open / In Progress / Done; add tasks with Markdown descriptions and subtasks |
+| **Commands** | Browse and copy your command library; filter by category or project scope |
+| **Logs** | Read-only view of the current project's `work-log.md` |
+| **Stats** | Productivity score, completion rate, stagnation alerts, 30-day activity heatmap |
+| **Meetings** | Create and browse meeting notes for the selected project |
+| **Interview** | Track interviews with questions, candidate ratings, and outcomes |
+| **Workflows** | Manage reusable templates and track named procedure runs step-by-step |
+| **Weekly Report** | Generate and view weekly summaries for a date range |
+| **AI Agent** | Chat with Claude about your project — read-only or write mode |
+
+### Tasks Tab (Kanban)
+
+- Three columns: Open · In Progress · Done
+- Drag & drop cards between columns
+- Priority-based sorting (P1 first), color-coded borders
+- Live subtask progress bar per card
+- Right-click context menu: move status, change priority, add/manage subtasks
+- Double-click card: inline edit
+- Click `ⓘ`: full details popup with Markdown preview
+
+### Commands Tab
+
+- Categories shown as a sidebar list (one `.md` file per category)
+- Scope filter: `GLOBAL`, project-specific, or all
+- One-click copy to clipboard
+- Add/edit/delete commands via dialog
+- Auto-populated with useful defaults on first run
+
+### Workflows Tab
+
+- Left panel: filter by scope/template, list of runs, + New Run, Manage Templates
+- Right panel: selected run with step cards
+- Each step card: status icon, title, ✓ Done / → Skip / + Note / ↑ ↓ × buttons
+- Expandable step detail: guidance, notes, expected vs. actual result, code blocks
+- Sync button (template-based runs): pulls latest template changes without overwriting your progress
+
+### AI Agent Tab
+
+| Mode | Button | What the agent can do |
+| --- | --- | --- |
+| Read-only (default) | grey | Answer questions, search logs, analyse stats |
+| Write mode | orange | Also create tasks, move task status |
+
+Quick-action buttons: **Weekly Summary · Project Insights · Stagnant Tasks · Decompose Goal**
+
+---
+
+## Workspace Layout
+
+```text
+<workspace>/
+├── 00_Inbox/                        ← Unprocessed items
+├── 01_Projects/
+│   └── <project-name>/
+│       ├── README.md
+│       ├── notes/
+│       │   ├── tasks.md             ← Kanban source of truth
+│       │   └── work-log.md          ← Daily structured log
+│       ├── meetings/                ← Meeting notes
+│       └── workflows/               ← Project-scoped workflow runs
+├── 02_Commands/                     ← Command library (one .md per category)
+│   ├── docker.md
+│   ├── git.md
+│   ├── linux.md
+│   └── ...
+├── 03_Meetings/                     ← Global meeting notes
+├── 04_References/                   ← Reference documents
+├── 06_Workflows/
+│   ├── templates/                   ← Reusable procedure blueprints
+│   └── runs/                        ← Global workflow runs
+└── 99_Archive/                      ← Archived projects
 ```
 
 ---
@@ -120,410 +249,98 @@ gradlew.bat :gui:run
 Stored at `~/.workctl/config.yaml`:
 
 ```yaml
-workspace: "C:/Users/Ajay/Work"
+workspace: "/path/to/your/workspace"
 editor: "code"
 dateFormat: "yyyy-MM-dd"
-anthropicApiKey: "sk-ant-..."   # required for AI agent
+anthropicApiKey: "sk-ant-..."        # required for AI agent features
 ```
 
-Set values via:
-
 ```bash
-workctl config set anthropicApiKey sk-ant-YOUR_KEY
 workctl config set workspace /path/to/workspace
 workctl config set editor code
+workctl config set anthropicApiKey sk-ant-YOUR_KEY
 ```
 
 ---
 
-## Workspace Structure
+## Module Structure
 
+Gradle multi-module project with one-way dependency flow:
+
+```text
+cli  ─┐
+gui  ─┼──► core ──► config
+agent─┘
 ```
-Workspace/
-├── 00_Inbox/
-├── 01_Projects/
-│   └── <project-name>/
-│       ├── README.md
-│       ├── docs/
-│       ├── src/
-│       ├── logs/
-│       └── notes/
-│           ├── work-log.md
-│           └── tasks.md
-├── 02_Commands/
-│   ├── git.md
-│   └── workctl.md
-├── 03_Meetings/
-├── 04_References/
-└── 99_Archive/
-```
+
+| Module | Purpose |
+| --- | --- |
+| `core` | All business logic and Markdown-based persistence. No UI dependency. |
+| `cli` | Picocli commands. Entry point: `WorkctlCLI.java`. |
+| `gui` | JavaFX 21 desktop application. Entry point: `WorkctlApp.java`. |
+| `agent` | Claude API integration with multi-turn tool-use loop. |
+| `config` | YAML config loading from `~/.workctl/config.yaml`. |
+
+Full architecture details: **[docs/workctl-docs.md](docs/workctl-docs.md)**
 
 ---
-
-## Task Engine
-
-Tasks are stored in structured Markdown with full subtask support:
-
-```markdown
-## Open
-
-1. [ ] (P1) Implement search bar  <!-- created=2026-02-20 -->
-    Full description of the task here.
-    - [ ] Keyword-based search
-    - [x] Tag-based search
-    - [ ] Date-based search
-
-## In Progress
-
-2. [~] (P2) Refactor parser  <!-- created=2026-02-18 -->
-
-## Done
-
-3. [x] (P3) Update README  <!-- created=2026-02-15 -->
-```
-
-Each task supports:
-
-- Unique ID
-- Status: Open / In Progress / Done
-- Priority: P1 (High) / P2 (Medium) / P3 (Low)
-- Created date
-- Multiline Markdown description
-- Subtask list with individual done/open state
-- Metadata stored in HTML comments (invisible in rendered Markdown)
-
----
-
-## Supported CLI Commands
-
-```bash
-# Workspace
-workctl init
-workctl project create <project-name> --description "text"
-workctl project list
-
-# Tasks
-workctl task add <project>
-workctl task add <project> --edit
-workctl task add <project> --file task.txt
-workctl task add <project> -p 1
-workctl task list <project>
-workctl task start <project> <task-id>
-workctl task done <project> <task-id>
-workctl task show <project> <task-id>
-workctl task delete <project> -id 12
-
-# Work Logging
-workctl log <project>
-workctl log <project> --section <section>
-workctl log <project> --message "text"
-workctl log <project> --section done --edit
-
-# Reports
-workctl weekly
-workctl weekly <project>
-workctl weekly <project> --from 2026-02-11 --to 2026-02-14
-workctl weekly <project> --ai                           # AI-generated narrative summary
-
-# Search
-workctl search <keyword>
-workctl search <tag> --tag
-
-# Insights
-workctl insight <project>
-workctl insight <project> --ai                          # AI-enhanced analysis
-
-# AI Agent
-workctl ask <project> "What did I work on this week?"
-workctl ask <project> --act "Break this goal into tasks"
-
-# Config
-workctl config show
-workctl config set editor <name>
-workctl config set workspace <path>
-workctl config set anthropicApiKey <key>
-
-# Commands Tracking
-workctl cmd add <category> "<command>" -t "<title>" [-n "<notes>"] [-p "<project>"]
-workctl cmd list
-workctl cmd list <category>
-workctl cmd list --project <name>
-workctl cmd search "<keyword>"
-```
-
-### [For more on CLI API guide Refer -> CLI APIs](docs/cli-api.md)
-
----
-
-## GUI Features
-
-### Kanban Board
-
-- Three columns: Open, In Progress, Done
-- Drag & drop cards between columns
-- Priority-based automatic sorting (P1 first)
-- Color-coded borders per priority level (Red / Orange / Green)
-- Live subtask progress bar on each card
-- Task count per column
-
-### Search Bar
-
-- Live filtering as you type — no button press needed
-- Searches across title, description, tags, and subtask titles
-- Results stay grouped in their status columns
-- Column headers show match count when filtering
-- One-click clear button to reset
-
-### Commands Tab
-
-- Grouped by Markdown Category Files (e.g., `git`, `docker`, `aws`)
-- Dynamically filter scope between `GLOBAL`, System `workctl` defaults, and Active Project Contexts.
-- "Add Command" Dialog creates Git-friendly markdown metadata definitions
-- One-click "Copy Command" buttons natively linked to system clipboard.
-
-### Add / Update Task Dialog
-
-- Markdown description editor with live preview (CommonMark)
-- Priority dropdown (P1 / P2 / P3)
-- Inline subtask panel: add, check/uncheck, delete subtasks before saving
-- Update Task dialog includes the same subtask editor + live markdown preview + priority change
-
-### Task Card Interactions
-
-| Action | Result |
-|---|---|
-| Single click | Highlight card |
-| Double click | Inline edit description |
-| Click `i` button | Open full details popup |
-| Right-click | Context menu |
-| Drag | Move to another column |
-
-### Context Menu (Right-click)
-
-- Move to Open / In Progress / Done
-- Change Priority (P1 / P2 / P3)
-- ➕ Add Subtask — quick single-subtask dialog
-- 📋 Manage Subtasks — full add / toggle / delete interface
-
-### Task Details Popup (Split View)
-
-Left panel:
-- Task ID, Status, Priority badge, Created date
-- Subtask checklist with progress bar — click to toggle done/undone
-
-Right panel:
-- Full Markdown rendered view including subtask checklist
-- Text is selectable and copyable (right-click → Copy)
-- Scrollable
-
-Buttons: **Update Task** | **Delete Task** | **Close**
-
-### Auto-Refresh
-
-- Board auto-refreshes when `tasks.md` is modified externally (WatchService)
-- Switching projects clears search and reloads board
-
----
-
-## Subtask System
-
-Subtasks are stored as 4-space-indented checkbox lines directly in `tasks.md`:
-
-```
-1. [ ] (P2) Build reporting feature  <!-- created=2026-02-20 -->
-    Full description.
-    - [ ] Design data model
-    - [x] Implement parser
-    - [ ] Write tests
-```
-
-**Operations available:**
-
-| Operation | GUI | CLI | AI Agent |
-|---|---|---|---|
-| Add subtask | ✅ Add Task dialog, right-click, Update dialog | — | ✅ `add_subtask` tool |
-| Toggle done/undone | ✅ Details popup checklist, Manage dialog | — | — |
-| Delete subtask | ✅ Manage Subtasks dialog | — | — |
-| View progress | ✅ Card progress bar + details popup | — | ✅ Context-aware |
-
----
-
-## AI Agent
-
-The agent integrates Claude via the Anthropic API with a full tool-use loop.
-
-### Write Mode Toggle
-
-In the GUI's Agent tab, toggle **Write Mode** to control what the agent can do:
-
-| Mode | What the agent can do |
-|---|---|
-| **OFF** (default) | Read tasks, search logs, give insights — safe for questions |
-| **ON** | Everything above + create tasks, add subtasks, move task status |
-
-### Available Agent Tools
-
-| Tool | Mode | Description |
-|---|---|---|
-| `list_tasks` | Read | List tasks filtered by status |
-| `search_logs` | Read | Search work log entries by date range |
-| `get_insights` | Read | Fetch project health statistics |
-| `add_task` | Write | Create a new task with description and priority |
-| `add_subtask` | Write | Add a subtask to an existing task by ID |
-| `move_task` | Write | Change a task's status |
-
-### Example Agent Interactions
-
-```
-"Which P1 tasks have been stuck for more than a week?"
-
-"Summarize what I did this week."
-
-"Break down 'Build the reporting dashboard' into tasks."
-→ Agent creates tasks and adds subtasks for each one.
-
-"Add a subtask 'Write unit tests' to task #42."
-
-"Give me an AI analysis of this project's health."
-```
-
-### Specialized Agent Commands (GUI Quick Actions)
-
-- **📅 Weekly Summary** — narrative summary of the week's work
-- **📊 Project Insights** — AI interpretation of productivity stats
-- **⚠ Stagnant Tasks** — highlights tasks stuck for 7+ days
-- **🔀 Decompose Goal** — breaks a high-level goal into tasks and subtasks
-
----
-
-## Markdown Support
-
-- Live preview in Add Task and Update Task dialogs
-- CommonMark engine (via `org.commonmark`)
-- Subtasks rendered as GFM task-list checkboxes in preview
-- Metadata stored in HTML comments — invisible when rendered
-- All preview panels: text selectable, right-click → Copy
-- Git-friendly plain-text storage format
-
----
-
-## Logging Engine
-
-- Smart date-block detection — auto-creates missing date sections
-- Structured log categories: Assigned, Done, Notes, Commands Used
-- Prevents duplicate section headers
-- Metadata event tracking (task created / started / completed)
-- Last 7 days included in AI agent context automatically
-
----
-
-## High-Level Architecture
-
-```java
-        ┌────────────────────┐
-        │      CLI Layer     │
-        │      (Picocli)     │
-        └──────────┬─────────┘
-        │
-        ┌──────────▼─────────┐
-        │       GUI Layer     │
-        │     (JavaFX UI)     │
-        └──────────┬─────────┘
-        │
-        ┌──────────▼─────────┐
-        │      Core Layer     │
-        │  TaskService, Log   │
-        │  StatsService       │
-        └──────────┬─────────┘
-        │
-        ┌──────────▼─────────┐
-        │  Markdown Engine    │
-        │  Metadata Parser    │
-        └──────────┬─────────┘
-        │
-        ┌──────────▼─────────┐
-        │   Filesystem I/O    │
-        │  tasks.md storage   │
-        └────────────────────┘
-
-```
-
-### Responsibilities
-
-| Module | Responsibility |
-|---------|----------------|
-| CLI     | Parse arguments, call core services |
-| Core    | Project creation, logging logic |
-| Config  | Load/save workspace configuration |
-| GUI     | Desktop interface using same services |
-
-
-
-## Screenshots
-
-### GUI Usage
-
-![Task Panel](assets/images/task-panel.png)
-
-![Log Panel](assets/images/log-panel.png)
-
-![Stat Panel](assets/images/stat-panel.png)
-
-![AI Agent Panel](assets/images/ai-agent-panel.png)
-
-![Task Right Click Context Menu](assets/images/context-menu.png)
-
-![Task View - (i) Button](assets/images/task-view.png)
-
-![Add Task Window](assets/images/create-task.png)
-
-![Search Bar in Action](assets/images/search-action.png)
-
-### CLI Usage
-
-![workctl help](assets/images/help-cmd.png)
-
-![Add New Task](assets/images/add-new-task.png)
-
-### AI Agent
-
-![AI AGENT Response](assets/images/ai-response-page.png)
-
-#### You can also refer [Sample AI Agent Response](docs/ai-weekly-resp.md).
-
-![Custom Query](assets/images/custom-qry-ai.png)
-
-![Custome Response](assets/images/custom-resp-ai.png)
-
 
 ## Design Philosophy
 
-- **Filesystem as database** — no hidden DB, no migrations
-- **Markdown-first persistence** — human-readable, Git-versionable
-- **Zero external DB dependency** — tasks.md is the source of truth
-- **CLI-first, GUI-enhanced** — every operation works in both
-- **AI as an extension, not a replacement** — agent calls the same Core services
-- **Backward compatible** — old tasks.md files parse correctly
-- **Clear separation of concerns** — Core is independent of CLI, GUI, and Agent
+- **Filesystem as database** — no hidden DB, no migrations, no lock-in
+- **Markdown-first** — human-readable, Git-versionable, editor-friendly
+- **CLI-first, GUI-enhanced** — every operation works in both interfaces
+- **AI as an extension** — the agent calls the same Core services as the CLI/GUI
+- **Clear separation** — Core is independent of CLI, GUI, and Agent
 
 ---
 
 ## Tech Stack
 
 | Component | Technology |
-|---|---|
+| --- | --- |
 | Language | Java 17+ |
 | Build | Gradle (multi-module) |
-| CLI framework | Picocli |
-| GUI framework | JavaFX 21 |
+| CLI | Picocli |
+| GUI | JavaFX 21 |
 | Config | SnakeYAML |
 | Markdown | CommonMark (`org.commonmark`) |
 | AI | Anthropic Claude API (HTTP, tool-use loop) |
-| JSON | Jackson (`com.fasterxml.jackson`) |
-| Storage | Plain Markdown files (filesystem) |
+| JSON | Jackson |
+| Storage | Plain Markdown files |
+
+---
+
+## Screenshots
+
+### GUI
+
+![Task Panel](assets/images/task-panel.png)
+![Log Panel](assets/images/log-panel.png)
+![Stat Panel](assets/images/stat-panel.png)
+![AI Agent Panel](assets/images/ai-agent-panel.png)
+![Task Right-Click Context Menu](assets/images/context-menu.png)
+![Task View](assets/images/task-view.png)
+![Add Task Dialog](assets/images/create-task.png)
+![Search Bar](assets/images/search-action.png)
+
+### CLI
+
+![workctl help](assets/images/help-cmd.png)
+![Add New Task](assets/images/add-new-task.png)
+
+### AI Agent
+
+![AI Response](assets/images/ai-response-page.png)
+![Custom Query](assets/images/custom-qry-ai.png)
+![Custom Response](assets/images/custom-resp-ai.png)
+
+See also: [Sample AI Agent Response](docs/ai-weekly-resp.md)
 
 ---
 
 ## Author
+
+Ajay Gupt
 
 Built as part of an evolving Developer Productivity System.

@@ -80,6 +80,10 @@
             <Tab text="Interview" closable="false">
                 <fx:include source="interview.fxml" fx:id="interviewView"/>
             </Tab>
+
+            <Tab text="Workflows" closable="false">
+                <fx:include source="workflows.fxml" fx:id="workflowsView"/>
+            </Tab>
         </TabPane>
     </center>
 

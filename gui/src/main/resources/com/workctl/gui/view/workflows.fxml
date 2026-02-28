@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<SplitPane fx:id="mainSplitPane"
+           dividerPositions="0.30"
+           styleClass="app-bg"
+           xmlns="http://javafx.com/javafx/17"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.workctl.gui.controller.WorkflowController">
+
+    <!-- Left Panel: Filters + Run List -->
+    <VBox spacing="10" styleClass="sidebar-root" style="-fx-padding: 10;">
+
+        <Label text="Scope" style="-fx-font-weight: bold;"/>
+        <ComboBox fx:id="scopeFilterCombo" maxWidth="Infinity"/>
+
+        <Label text="Template" style="-fx-font-weight: bold; -fx-padding: 6 0 0 0;"/>
+        <ComboBox fx:id="templateFilterCombo" maxWidth="Infinity"/>
+
+        <HBox spacing="6" style="-fx-padding: 8 0 0 0;">
+            <Button fx:id="newRunBtn" text="+ New Run" onAction="#handleNewRun"
+                    maxWidth="Infinity" styleClass="add-task-btn" HBox.hgrow="ALWAYS"/>
+        </HBox>
+        <Button text="Manage Templates" onAction="#handleManageTemplates"
+                maxWidth="Infinity" styleClass="action-btn"/>
+
+        <Label text="Runs" style="-fx-font-weight: bold; -fx-padding: 6 0 0 0;"/>
+        <ListView fx:id="runListView" VBox.vgrow="ALWAYS"
+                  style="-fx-background-color: transparent;"/>
+    </VBox>
+
+    <!-- Right Panel: Selected Run Detail -->
+    <VBox styleClass="workflow-detail-root" spacing="0">
+
+        <!-- Run header (hidden when nothing selected) -->
+        <VBox fx:id="runHeaderBox" styleClass="workflow-run-header" style="-fx-padding: 14 18 10 18; -fx-spacing: 6;">
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label fx:id="runNameLabel" text="Select a run"
+                       style="-fx-font-size: 17px; -fx-font-weight: bold;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="runStatusLabel" text="" styleClass="workflow-status-badge"/>
+                <Button fx:id="syncTemplateBtn" text="↺ Sync Template" onAction="#handleSyncTemplate"
+                        styleClass="action-btn" visible="false"/>
+                <Button fx:id="deleteRunBtn" text="Delete" onAction="#handleDeleteRun"
+                        styleClass="danger-btn" visible="false"/>
+            </HBox>
+            <HBox alignment="CENTER_LEFT" spacing="16">
+                <Label fx:id="runMetaLabel" text="" styleClass="panel-status"/>
+                <Label fx:id="runProgressLabel" text="" styleClass="panel-status"/>
+            </HBox>
+        </VBox>
+
+        <Separator/>
+
+        <!-- Steps list -->
+        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                    style="-fx-background-color: transparent;" styleClass="kanban-col-scroll">
+            <VBox fx:id="stepsContainer" spacing="8" style="-fx-padding: 14;">
+                <!-- Step rows injected here by WorkflowController -->
+            </VBox>
+        </ScrollPane>
+
+    </VBox>
+
+</SplitPane>

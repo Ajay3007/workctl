@@ -1,5 +1,7 @@
 # workctl — Complete Documentation
 
+> **[← README](../README.md)** | [CLI Reference](cli-api.md) | [Workflows Guide](workflows-guide.md) | [Setup](SETUP.md) | [Distribution Guide](DISTRIBUTION_GUIDE.md)
+>
 > A hybrid CLI + GUI developer productivity system built in Java.  
 > Filesystem-backed · Markdown-native · AI-powered · Version-control friendly
 
@@ -145,22 +147,27 @@ workctl/
 ├── core/                            ← Business logic module
 │   └── src/main/java/com/workctl/core/
 │       ├── model/
-│       │   ├── Task.java            ← Domain: id, description, status, priority, tags
+│       │   ├── Task.java            ← Domain: id, description, status, priority, subtasks
 │       │   ├── TaskStatus.java      ← Enum: OPEN, IN_PROGRESS, DONE
+│       │   ├── StepStatus.java      ← Enum: TODO, DONE, SKIPPED  (workflow steps)
+│       │   ├── RunStatus.java       ← Enum: IN_PROGRESS, COMPLETED, ABANDONED
 │       │   ├── Project.java         ← Domain: id, name, description
-│       │   ├── ProjectInsights.java ← Stats result object
-│       │   ├── Meeting.java         ← Domain (in-memory only)
-│       │   ├── WeeklySummary.java   ← Domain (in-memory only)
-│       │   └── WorkLogEntry.java    ← Domain (in-memory only)
-│       ├── service/
-│       │   ├── TaskService.java     ← Full CRUD on tasks.md
-│       │   ├── ProjectService.java  ← Project creation, logging, search
-│       │   ├── StatsService.java    ← Productivity analytics
-│       │   ├── MeetingService.java  ← In-memory stub
-│       │   ├── WeeklyService.java   ← In-memory stub
-│       │   └── WorkLogService.java  ← In-memory stub
-│       └── domain/
-│           └── WorkspaceManager.java← Folder initialization
+│       │   └── ProjectInsights.java ← Stats result object
+│       ├── domain/
+│       │   ├── WorkflowTemplate.java← Blueprint with TemplateStep inner class
+│       │   ├── WorkflowRun.java     ← Execution with RunStep + SubStep inner classes
+│       │   ├── Meeting.java         ← Meeting notes domain model
+│       │   ├── Interview.java       ← Interview tracking domain model
+│       │   └── WorkspaceManager.java← Folder initialization
+│       └── service/
+│           ├── TaskService.java     ← Full CRUD on tasks.md + subtask management
+│           ├── ProjectService.java  ← Project creation, logging, search
+│           ├── StatsService.java    ← Productivity analytics
+│           ├── WorkflowService.java ← Template + Run CRUD, Markdown serialization
+│           ├── MeetingService.java  ← Meeting notes CRUD (Markdown-persisted)
+│           ├── InterviewService.java← Interview CRUD (Markdown-persisted)
+│           ├── CommandService.java  ← Command library CRUD
+│           └── WeeklyService.java   ← Weekly summary generation
 │
 ├── cli/                             ← Command-line interface module
 │   └── src/main/java/com/workctl/cli/
@@ -168,24 +175,32 @@ workctl/
 │       └── commands/
 │           ├── InitCommand.java
 │           ├── ProjectCommand.java
-│           ├── TaskCommand.java
+│           ├── TaskCommand.java     ← Includes SubtaskCommand inner class
 │           ├── LogCommand.java
 │           ├── WeeklyCommand.java
 │           ├── SearchCommand.java
 │           ├── StatsCommand.java
 │           ├── InsightCommand.java
 │           ├── ConfigCommand.java
+│           ├── CmdCommand.java      ← Command library CLI
+│           ├── MeetingCommand.java  ← Meeting notes CLI
+│           ├── FlowCommand.java     ← Workflows CLI (template + run + step)
 │           └── AskCommand.java      ← AI agent CLI command
 │
 ├── gui/                             ← JavaFX desktop app module
 │   └── src/main/java/com/workctl/gui/
 │       ├── WorkctlApp.java          ← JavaFX Application entry point
-│       ├── ProjectContext.java      ← Shared event bus (project selection)
+│       ├── ProjectContext.java      ← Shared static event bus (project selection)
 │       ├── controller/
-│       │   ├── MainController.java  ← Sidebar project list
+│       │   ├── MainController.java  ← Sidebar project list + tab host
 │       │   ├── TaskController.java  ← Kanban board
 │       │   ├── LogController.java   ← Work log viewer
-│       │   └── StatsController.java ← Statistics + heatmap
+│       │   ├── StatsController.java ← Statistics + activity heatmap
+│       │   ├── CommandController.java  ← Command library browser
+│       │   ├── MeetingController.java  ← Meeting notes manager
+│       │   ├── InterviewController.java← Interview tracker
+│       │   ├── WorkflowController.java ← Workflow templates + runs
+│       │   └── WeeklyReportController.java ← Weekly report generator
 │       └── agent/
 │           └── AgentPanel.java      ← AI chat panel + Markdown preview
 │
@@ -209,21 +224,27 @@ workctl/
 
 Initialized with `workctl init --workspace <path>`:
 
-```
+```text
 ~/Work/                              ← workspace root (configurable)
 ├── 00_Inbox/                        ← Unprocessed items
 ├── 01_Projects/                     ← All projects live here
 │   └── <project-name>/
 │       ├── README.md                ← Project description
-│       ├── docs/
-│       ├── src/
-│       ├── logs/
-│       └── notes/
-│           ├── tasks.md             ← All tasks (Kanban source of truth)
-│           └── work-log.md          ← Daily structured log entries
-├── 02_Commands/                     ← Saved commands reference
-├── 03_Meetings/                     ← Meeting notes
+│       ├── notes/
+│       │   ├── tasks.md             ← All tasks (Kanban source of truth)
+│       │   └── work-log.md          ← Daily structured log entries
+│       ├── meetings/                ← Project-scoped meeting notes
+│       └── workflows/               ← Project-scoped workflow runs
+├── 02_Commands/                     ← Command library (one .md per category)
+│   ├── docker.md
+│   ├── git.md
+│   ├── linux.md
+│   └── ...
+├── 03_Meetings/                     ← Global meeting notes
 ├── 04_References/                   ← Reference documents
+├── 06_Workflows/
+│   ├── templates/                   ← Reusable procedure blueprints
+│   └── runs/                        ← Global workflow runs
 └── 99_Archive/                      ← Archived projects
 ```
 
@@ -556,21 +577,35 @@ Creates a standard meeting notes template inside the `03_Meetings/` folder assoc
 
 ### 7.1 Layout Overview
 
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  workctl                                                                     │
+├────────────┬────────────────────────────────────────────────────────────────┤
+│            │ Tasks│Commands│Logs│Stats│Meetings│Interview│Workflows│Weekly│AI│
+│  Project   ├──────────────────────────────────────────────────────────────  │
+│  Explorer  │                                                                 │
+│            │                   [Selected Tab Content]                        │
+│ ─────────  │                                                                 │
+│ project-1  │                                                                 │
+│ project-2  │                                                                 │
+│ project-3  │                                                                 │
+│            │                                                                 │
+└────────────┴────────────────────────────────────────────────────────────────┘
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  workctl                                                             │
-├────────────┬────────────────────────────────────────────────────────┤
-│            │  Tasks  │  Logs  │  Stats  │  🤖 AI Agent             │
-│  Project   ├──────────────────────────────────────────────────────  │
-│  Explorer  │                                                         │
-│            │                  [Selected Tab Content]                 │
-│ ─────────  │                                                         │
-│ project-1  │                                                         │
-│ project-2  │                                                         │
-│ project-3  │                                                         │
-│            │                                                         │
-└────────────┴────────────────────────────────────────────────────────┘
-```
+
+**Nine tabs** — all share the project selected in the left sidebar:
+
+| Tab | Controller | What it does |
+| --- | --- | --- |
+| **Tasks** | `TaskController` | Kanban board (Open / In Progress / Done) with drag & drop, subtasks, Markdown editor |
+| **Commands** | `CommandController` | Browse, copy, add, and edit the personal command library; filter by category and scope |
+| **Logs** | `LogController` | Read-only view of `work-log.md` for the active project |
+| **Stats** | `StatsController` | Productivity score, completion rate, stagnation alerts, 30-day activity heatmap |
+| **Meetings** | `MeetingController` | Create and view meeting notes; stored as per-project Markdown files |
+| **Interview** | `InterviewController` | Track interviews: questions, ratings, candidate notes, outcomes |
+| **Workflows** | `WorkflowController` | Manage reusable templates and named procedure runs with step-by-step tracking |
+| **Weekly Report** | `WeeklyReportController` | Generate and view weekly summaries for a custom date range |
+| **AI Agent** | `AgentPanel` | Claude-powered chat panel with read/write mode and quick-action buttons |
 
 ### 7.2 Kanban Board (Tasks Tab)
 
@@ -647,19 +682,23 @@ Heatmap colors: `#eeeeee` (0) → `#c6e48b` (1) → `#7bc96f` (2-3) → `#239a3b
 
 All controllers communicate through a static event bus pattern:
 
-```
+```text
 User clicks project in sidebar
            │
            ▼
 MainController.projectListView listener
            │
-           ├──► ProjectContext.setCurrentProject(name)
-           │           │
-           │           ├──► TaskController.setProject()   → refreshBoard()
-           │           ├──► LogController.loadLog()       → read work-log.md
-           │           └──► StatsController.loadStats()   → generateInsights()
-           │
-           └──► AgentPanel.setProject(name)  → clear chat, show welcome
+           └──► ProjectContext.setCurrentProject(name)
+                           │
+                           ├──► TaskController          → refreshBoard()
+                           ├──► LogController           → read work-log.md
+                           ├──► StatsController         → generateInsights()
+                           ├──► CommandController       → reload command list
+                           ├──► MeetingController       → load meetings
+                           ├──► InterviewController     → load interviews
+                           ├──► WorkflowController      → filter runs by project
+                           ├──► WeeklyReportController  → reset date range
+                           └──► AgentPanel              → clear chat, show welcome
 ```
 
 ---

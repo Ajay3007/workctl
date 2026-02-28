@@ -1,5 +1,7 @@
 # workctl — CLI API Reference
 
+> **[← README](../README.md)** | [Workflows Guide](workflows-guide.md) | [Setup](SETUP.md) | [Distribution Guide](DISTRIBUTION_GUIDE.md) | [Full Docs](workctl-docs.md)
+
 Complete reference for all CLI commands implemented in workctl.
 
 ---
@@ -55,7 +57,7 @@ workctl log --help
 
 ---
 
-# 🏁 Initialization
+## 🏁 Initialization
 
 ## `workctl init`
 
@@ -105,7 +107,7 @@ anthropicApiKey: "sk-ant-..."   # required for AI agent
 
 ---
 
-# 📁 Project Commands
+## 📁 Project Commands
 
 ## `workctl project create`
 
@@ -206,7 +208,7 @@ workctl project delete auth-service
 
 ---
 
-# 📝 Log Commands
+## 📝 Log Commands
 
 ## `workctl log`
 
@@ -329,7 +331,7 @@ Tags are stored in the log metadata and can be searched with `workctl search --t
 
 ---
 
-# 📌 Task Commands
+## 📌 Task Commands
 
 Tasks are stored in `notes/tasks.md` as structured Markdown. Each task has an ID, priority, status, multiline description, and optional subtasks.
 
@@ -545,7 +547,7 @@ workctl task delete redis-load-test -id 7
 
 ---
 
-# ✅ Subtask Commands
+## ✅ Subtask Commands
 
 Subtasks are children of a task — short, actionable steps that contribute to completing the parent task. They are stored directly in `tasks.md` as indented checkbox lines.
 
@@ -651,7 +653,7 @@ workctl task subtask delete redis-load-test 3 2
 
 ---
 
-# 💻 Command Snippets
+## 💻 Command Snippets
 
 Commands are stored in `.md` files grouped by category under `02_Commands`.
 
@@ -707,7 +709,7 @@ workctl cmd list git -p auth-service
 
 ---
 
-# 🤝 Meetings
+## 🤝 Meetings
 
 ## `workctl meeting`
 
@@ -731,7 +733,7 @@ workctl meeting redis-load-test "Weekly Sync"
 
 ---
 
-# 📊 Weekly Summary
+## 📊 Weekly Summary
 
 ## `workctl weekly`
 
@@ -772,7 +774,7 @@ workctl weekly redis-load-test --from 2026-02-10 --to 2026-02-16 --section chang
 
 ---
 
-# 🔍 Search
+## 🔍 Search
 
 ## `workctl search`
 
@@ -806,7 +808,7 @@ workctl search performance --tag
 
 ---
 
-# 📈 Stats
+## 📈 Stats
 
 ## `workctl stats`
 
@@ -843,7 +845,7 @@ workctl stats redis-load-test
 
 ---
 
-# 🧠 Insight
+## 🧠 Insight
 
 ## `workctl insight`
 
@@ -895,7 +897,7 @@ Active Days (Heatmap entries): 8
 
 ---
 
-# 🤖 AI Agent
+## 🤖 AI Agent
 
 ## `workctl ask`
 
@@ -990,7 +992,7 @@ workctl ask redis-load-test --insight
 
 ---
 
-# ⚙ Config Commands
+## ⚙ Config Commands
 
 Configuration is stored at `~/.workctl/config.yaml`. The following keys are supported:
 
@@ -1074,7 +1076,7 @@ dateFormat = yyyy-MM-dd
 
 ---
 
-# 📦 Installation & Runtime
+## 📦 Installation & Runtime
 
 ### Build
 
@@ -1106,7 +1108,7 @@ Add this directory to `PATH` to use `workctl` globally from any terminal.
 
 ---
 
-# 🗂 Storage Format
+## 🗂 Storage Format
 
 All data is stored as plain Markdown files — no database required.
 
@@ -1141,6 +1143,284 @@ All data is stored as plain Markdown files — no database required.
 Because storage is plain Markdown, all project data is fully **Git-versionable** and human-readable without workctl installed.
 
 ---
+
+---
+
+## 🔁 Workflow Commands
+
+Workflows let you define reusable **templates** (procedure blueprints) and create named **runs** (executions of those procedures with per-step progress tracking).
+
+Full guide with GUI instructions: **[docs/workflows-guide.md](workflows-guide.md)**
+
+---
+
+## Template Commands
+
+### `workctl flow template new`
+
+Creates a new reusable workflow template.
+
+```bash
+workctl flow template new "<name>" [--desc "<description>"] [--tags "<tag1,tag2>"]
+```
+
+| Option | Short | Required | Description |
+| --- | --- | --- | --- |
+| `--desc` | `-d` | No | Description of the template's purpose |
+| `--tags` | `-t` | No | Comma-separated tags (e.g. `release,dev`) |
+
+```bash
+workctl flow template new "Release Checklist" \
+  --desc "Steps to safely release a new version" \
+  --tags "release,ops"
+```
+
+---
+
+### `workctl flow template step-add`
+
+Appends a step to an existing template.
+
+```bash
+workctl flow template step-add <template-id> "<step title>" \
+  [--desc "<guidance>"] [--expected "<expected result>"]
+```
+
+```bash
+workctl flow template step-add a1b2c3d4 "Run all tests" \
+  --expected "All tests pass with 0 failures"
+
+workctl flow template step-add a1b2c3d4 "Build release artifact" \
+  --desc "Use the packageNative task" \
+  --expected "workctl.exe and workctl-gui.exe present in build/release/"
+
+workctl flow template step-add a1b2c3d4 "Tag the release in Git" \
+  --expected "Tag v<version> pushed to remote"
+```
+
+---
+
+### `workctl flow template list`
+
+Lists all templates in the workspace.
+
+```bash
+workctl flow template list
+```
+
+Output:
+
+```text
+┌─ Workflow Templates ─────────────────────────────────────────┐
+ID (short)    Name                     Steps   Tags          Created
+──────────────────────────────────────────────────────────────────
+a1b2c3d4      Release Checklist        4       release,ops   2026-02-27
+83669d7b      Explore Existing Codebase 5      dev           2026-02-20
+```
+
+---
+
+### `workctl flow template show`
+
+Shows a template's full step list with descriptions and expected results.
+
+```bash
+workctl flow template show <template-id>
+```
+
+```bash
+workctl flow template show a1b2c3d4
+```
+
+---
+
+### `workctl flow template delete`
+
+Permanently deletes a template. Existing runs created from it are not affected.
+
+```bash
+workctl flow template delete <template-id>
+```
+
+---
+
+## Run Commands
+
+### `workctl flow new`
+
+Creates a new workflow run, optionally from a template.
+
+```bash
+# From a template (steps copied automatically)
+workctl flow new "<run name>" --template <template-id> [--project <project-name>]
+
+# Blank run (no template)
+workctl flow new "<run name>" [--project <project-name>]
+```
+
+| Option | Short | Required | Description |
+| --- | --- | --- | --- |
+| `--template` | `-t` | No | ID of the template to copy steps from |
+| `--project` | `-p` | No | Scopes the run to a project; omit for global |
+
+```bash
+# Project-scoped run from a template
+workctl flow new "Release v1.3.0" --template a1b2c3d4 --project workctl
+
+# Global blank run
+workctl flow new "Investigate prod issue — 2026-03-01"
+```
+
+---
+
+### `workctl flow list`
+
+Lists runs, with optional scope filter.
+
+```bash
+workctl flow list                         # global runs only
+workctl flow list --project <name>        # project-scoped runs
+workctl flow list --all                   # all runs (global + all projects)
+```
+
+Output:
+
+```text
+ID (short)    Name                     Project    Status        Progress
+─────────────────────────────────────────────────────────────────────────
+bdc15533      Release v1.3.0           workctl    IN PROGRESS   2/4
+f2a09c11      Investigate prod issue   (global)   IN PROGRESS   0/3
+```
+
+---
+
+### `workctl flow show`
+
+Shows a run with all steps, statuses, and notes.
+
+```bash
+workctl flow show <run-id>
+```
+
+Output:
+
+```text
+┌─ Release v1.3.0 ───────────────────────────────┐
+  Status:  IN PROGRESS   Project: workctl
+  Progress: [█████░░░░░] 2/4
+──────────────────────────────────────────────────
+  ✓ 1. Run all tests
+     All 47 tests passed in 3.2s.
+     Expected: All tests pass with 0 failures
+
+  ✓ 2. Build release artifact
+     workctl.exe and workctl-gui.exe built successfully.
+
+  ○ 3. Tag the release in Git
+
+  ○ 4. Publish release notes
+```
+
+---
+
+### `workctl flow delete`
+
+Permanently deletes a run.
+
+```bash
+workctl flow delete <run-id>
+```
+
+---
+
+## Step Commands
+
+### `workctl flow step done`
+
+Marks a step as DONE (1-based step number).
+
+```bash
+workctl flow step done <run-id> <step-number>
+```
+
+```bash
+workctl flow step done bdc15533 1
+# ✓ Step 1 marked DONE
+# Progress: [█████░░░░░] 1/4
+```
+
+---
+
+### `workctl flow step skip`
+
+Marks a step as SKIPPED (excluded from progress count).
+
+```bash
+workctl flow step skip <run-id> <step-number>
+```
+
+```bash
+workctl flow step skip bdc15533 3
+# ✓ Step 3 marked SKIPPED
+```
+
+---
+
+### `workctl flow step note`
+
+Adds or replaces the observation notes on a step.
+
+```bash
+# Inline message
+workctl flow step note <run-id> <step-number> --message "<text>"
+
+# Open configured editor
+workctl flow step note <run-id> <step-number> --edit
+```
+
+```bash
+workctl flow step note bdc15533 1 --message "All 47 tests passed in 3.2s."
+```
+
+Calling `step note` again **replaces** the previous note for that step.
+
+---
+
+## ID Shorthand
+
+All `flow` commands accept either the full UUID or its first 8 characters:
+
+```bash
+# Both are equivalent
+workctl flow show bdc15533-aed2-4a2f-bf6d-f825e3b8ef71
+workctl flow show bdc15533
+```
+
+---
+
+## Typical Workflow (end-to-end)
+
+```bash
+# 1. Define a template once
+workctl flow template new "Explore Codebase" --tags "dev"
+workctl flow template step-add <id> "Show recent git commits" --expected "Commit list"
+workctl flow template step-add <id> "Find source files by module" --expected "File list"
+workctl flow template step-add <id> "Check test coverage" --expected "Test classes or 0"
+workctl flow template step-add <id> "Read key docs" --expected "Understand structure"
+
+# 2. Start a run for a new project
+workctl flow new "Explore new-project" --template <id> --project new-project
+
+# 3. Work through steps
+workctl flow step done <run-id> 1
+workctl flow step note <run-id> 1 --message "15 commits, active since Jan"
+workctl flow step done <run-id> 2
+workctl flow step skip <run-id> 3
+workctl flow step done <run-id> 4
+
+# 4. Review completed run
+workctl flow show <run-id>
+```
 
 ---
 

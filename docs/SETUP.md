@@ -1,6 +1,8 @@
 
 # workctl — Developer Setup Guide
 
+> **[← README](../README.md)** | [CLI Reference](cli-api.md) | [Workflows Guide](workflows-guide.md) | [Distribution Guide](DISTRIBUTION_GUIDE.md) | [Full Docs](workctl-docs.md)
+
 Step-by-step setup for new developers on macOS, Linux, and Windows.
 
 ---
