@@ -90,6 +90,29 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
+          body: |
+            ## Installation
+
+            Download the ZIP for your platform, extract it, and run the executable.
+
+            | Platform | CLI | GUI |
+            | --- | --- | --- |
+            | Windows | `workctl-*-windows.zip` | `workctl-gui-*-windows.zip` |
+            | macOS | `workctl-*-macos.zip` | `workctl-gui-*-macos.zip` |
+            | Linux | `workctl-*-linux.zip` | `workctl-gui-*-linux.zip` |
+
+            ## ⚠️ Security warnings (expected — app is unsigned)
+
+            These apps are not code-signed. Your OS will warn you on first launch — this is normal.
+
+            **macOS — "can't be opened because Apple cannot check it for malicious software"**
+            > Right-click the `.app` → **Open** → click **Open** in the dialog.
+            > Or run in Terminal: `xattr -cr workctl-gui.app` then double-click.
+
+            **Windows — SmartScreen warning**
+            > Click **More info** → **Run anyway**.
+
+            **Linux** — no warning, just `chmod +x workctl && ./workctl`.
           files: |
             cli/build/distributions/workctl-*-${{ matrix.suffix }}.zip
             gui/build/distributions/workctl-gui-*-${{ matrix.suffix }}.zip
