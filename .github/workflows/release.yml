@@ -24,9 +24,9 @@ jobs:
           - os: windows-latest
             suffix: windows
             javafx_platform: windows-x64
-          - os: macos-13          # Intel x64 — JavaFX 21 JMODs are x64-only
+          - os: macos-latest      # ARM (Apple Silicon) — matches osx-aarch64 JMODs
             suffix: macos
-            javafx_platform: osx-x64
+            javafx_platform: osx-aarch64
           - os: ubuntu-latest
             suffix: linux
             javafx_platform: linux-x64

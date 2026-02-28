@@ -1,7 +1,6 @@
 # Gradle
 .gradle/
 build/
-gradle/
 gradlew.bat
 
 # IDE
@@ -20,6 +19,7 @@ Thumbs.db
 *.class
 *.jar
 *.log
+!gradle/wrapper/gradle-wrapper.jar
 
 # Config
 .workctl/
