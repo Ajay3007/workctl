@@ -2,15 +2,30 @@
 
 > **[← README](../README.md)** | [CLI Reference](cli-api.md) | [Workflows Guide](workflows-guide.md) | [Setup](SETUP.md) | [Full Docs](workctl-docs.md)
 
-## Which option should I use?
+## Recommended: Download pre-built binaries (v2.0.0+)
+
+As of v2.0.0, GitHub Actions automatically builds self-contained native executables for all platforms on every tag push. No Java needed on target machines.
+
+Download from: **[github.com/Ajay3007/workctl/releases](https://github.com/Ajay3007/workctl/releases)**
+
+| Platform | CLI ZIP | GUI ZIP |
+| --- | --- | --- |
+| Windows | `workctl-2.0.0-windows.zip` | `workctl-gui-2.0.0-windows.zip` |
+| macOS (Apple Silicon) | `workctl-2.0.0-macos.zip` | `workctl-gui-2.0.0-macos.zip` |
+| Linux | `workctl-2.0.0-linux.zip` | `workctl-gui-2.0.0-linux.zip` |
+
+To trigger a new release: `git tag vX.Y.Z && git push --tags` — CI builds and uploads automatically.
+
+---
+
+## Build locally — which option should I use?
 
 | Scenario | Command | What you share | Java needed? |
-|----------|---------|----------------|--------------|
-| Quick share (Java users) | `./gradlew :cli:zipDist` | `workctl-1.0.0-dist.zip` | ✅ Java 17+ |
-| Fat JAR (Java users) | `./gradlew :cli:shadowJar` | `workctl-1.0.0-all.jar` | ✅ Java 17+ |
-| Portable GUI (no Java) | `./gradlew :gui:runtimeZip` | `workctl-gui-1.0.0-portable.zip` | ❌ None |
-| Native .exe (no Java) | `./gradlew packageAll` | `build/release/` folder | ❌ None |
-| Both + one ZIP | `./gradlew zipRelease` | `workctl-1.0.0-windows.zip` | ❌ None |
+| --- | --- | --- | --- |
+| Quick share (Java users) | `./gradlew :cli:zipDist` | `workctl-2.0.0-dist.zip` | ✅ Java 17+ |
+| Fat JAR (Java users) | `./gradlew :cli:shadowJar` | `workctl-2.0.0-all.jar` | ✅ Java 17+ |
+| Native ZIP (no Java) | `./gradlew :cli:packageZip` | `workctl-2.0.0-<platform>.zip` | ❌ None |
+| Native GUI ZIP (no Java) | `./gradlew :gui:packageZip` | `workctl-gui-2.0.0-<platform>.zip` | ❌ None |
 
 ---
 

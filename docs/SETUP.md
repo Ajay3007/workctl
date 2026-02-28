@@ -283,6 +283,8 @@ workctl-build
 
 ## 8. Building Portable Executables (GUI & CLI)
 
+> **Tip:** As of v2.0.0, pre-built native executables for Windows, macOS, and Linux are published automatically on every release at **[github.com/Ajay3007/workctl/releases](https://github.com/Ajay3007/workctl/releases)**. Build locally only if you need a custom or development build.
+
 This produces self-contained binaries that anyone can run — **no Java or JavaFX installation needed** on the target machine.
 
 ### How it works
@@ -532,4 +534,4 @@ workctl/
 
 ---
 
-*Last updated: 2026-02-22 — added Section 8: portable executable / packaging guide*
+Last updated: 2026-02-28 — v2.0.0: pre-built binaries available for all platforms via GitHub Actions

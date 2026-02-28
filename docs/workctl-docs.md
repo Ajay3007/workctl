@@ -27,11 +27,13 @@
 workctl is a developer productivity system that combines:
 
 - **Structured Markdown storage** — tasks and logs live in plain `.md` files, fully git-trackable
-- **Kanban task tracking** — Open → In Progress → Done workflow with priorities
+- **Kanban task tracking** — Open → In Progress → Done workflow with priorities, subtasks, and toggle/delete
 - **Date-aware work logging** — daily structured entries with section normalization
 - **Weekly summaries** — auto-generated from log entries across a date range
 - **Project insights** — productivity scores, stagnation detection, completion analytics
-- **JavaFX desktop GUI** — drag-and-drop Kanban board with inline editing
+- **Workflow engine** — reusable procedure templates + named execution runs with per-step tracking (v2.0.0)
+- **Command library** — 215 built-in commands (Linux, git, docker, ssh, networking, text-processing) pre-populated on first run (v2.0.0)
+- **JavaFX desktop GUI** — nine-tab desktop app with drag-and-drop Kanban, Workflows panel, and more
 - **AI agent** — Claude-powered assistant embedded in both CLI and GUI
 
 Everything is stored as Markdown files on your filesystem. There is no database.
@@ -928,9 +930,7 @@ workctl ask my-project "What tasks do I have open?"
 
 | Area | Status | Notes |
 |------|--------|-------|
-| MeetingService | Stub | In-memory only, not persisted, not registered in CLI |
 | WeeklyService | Stub | Separate from `ProjectService.generateWeeklySummary()` |
 | WorkLogService | Stub | Separate from `ProjectService.addLogEntry()` |
 | FileSystemStore | Unused | Defined but not used by main services |
 | MarkdownRenderer | Unused | Renders non-persisted domain objects |
-| `workctl meeting` | Missing | `MeetingCommand` defined but not registered in `WorkctlCLI` |

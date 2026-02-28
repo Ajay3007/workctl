@@ -1424,5 +1424,5 @@ workctl flow show <run-id>
 
 ---
 
-*Last updated: 2026-02-21*
+*Last updated: 2026-02-28 (v2.0.0 — subtask toggle/delete, 215 built-in commands)*
 *Keep this file in sync with any CLI command additions or changes.*

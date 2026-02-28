@@ -1,6 +1,6 @@
 # workctl
 
-**v1.2.0** · A hybrid CLI + GUI developer productivity system built in Java.
+**v2.0.0** · A hybrid CLI + GUI developer productivity system built in Java.
 
 Workctl helps developers manage projects, track tasks, document procedures, log work, run AI-assisted analysis, and build a personal command reference — all stored as plain Markdown files on your filesystem. No database. No cloud dependency. Fully Git-versionable.
 
@@ -42,17 +42,19 @@ New to workctl? Start here: **[docs/SETUP.md](docs/SETUP.md)**
 
 Covers prerequisites, PATH setup, workspace initialization, and your first project.
 
-### Quick Install (Windows — no Java needed)
+### Quick Install (no Java needed)
 
-| Package | Download |
-| --- | --- |
-| GUI (desktop app) | [workctl-gui-1.2.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.2.0) |
-| CLI (terminal tool) | [workctl-1.2.0-windows.zip](https://github.com/Ajay3007/workctl/releases/tag/v1.2.0) |
+Download from the **[Releases page →](https://github.com/Ajay3007/workctl/releases/tag/v2.0.0)**
 
-**GUI:** Unzip → double-click `workctl-gui.exe`
-**CLI:** Unzip → add folder to PATH → run `workctl`
+| Platform | GUI | CLI |
+| --- | --- | --- |
+| **Windows** | `workctl-gui-2.0.0-windows.zip` | `workctl-2.0.0-windows.zip` |
+| **macOS (Apple Silicon)** | `workctl-gui-2.0.0-macos.zip` | `workctl-2.0.0-macos.zip` |
+| **Linux** | `workctl-gui-2.0.0-linux.zip` | `workctl-2.0.0-linux.zip` |
 
-> macOS / Linux: build from source (see [SETUP.md](docs/SETUP.md))
+**Windows:** Unzip → double-click `workctl-gui.exe`. If SmartScreen warns, click **More info → Run anyway**.
+**macOS:** Unzip → right-click `workctl-gui.app` → **Open**. Or: `xattr -dr com.apple.quarantine workctl-gui.app && open workctl-gui.app`
+**Linux:** Unzip → `chmod +x workctl && ./workctl`
 
 ### Build from Source
 
