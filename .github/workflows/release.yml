@@ -60,8 +60,9 @@ jobs:
           URL="https://download2.gluonhq.com/openjfx/${JAVAFX_VERSION}/openjfx-${JAVAFX_VERSION}_${PLATFORM}_bin-jmods.zip"
           echo "Downloading: $URL"
           curl -fsSL -o javafx-jmods.zip "$URL"
-          unzip -q javafx-jmods.zip -d javafx-jmods-extracted
-          JMODS_DIR=$(find javafx-jmods-extracted -maxdepth 1 -type d -name 'javafx-jmods-*' | head -1)
+          unzip -q javafx-jmods.zip
+          # Use workspace-absolute path so jpackage (launched from gui/ subdir) can find the JMODs
+          JMODS_DIR="${{ github.workspace }}/javafx-jmods-${JAVAFX_VERSION}"
           echo "jmods_dir=$JMODS_DIR" >> $GITHUB_OUTPUT
           echo "JMODs directory: $JMODS_DIR"
 
