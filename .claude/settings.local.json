@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(uniq:*)",
-      "Read(//c/Users/Ajay.Gupt/Downloads/csp/projects/workctl/**)"
-    ]
-  }
-}
