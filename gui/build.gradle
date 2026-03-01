@@ -199,6 +199,24 @@ tasks.register('packageApp', Exec) {
             }
         }
 
+        // macOS: re-sign the bundle with JVM entitlements so Finder can launch it.
+        // jpackage produces an ad-hoc signature without the entitlements the JVM
+        // needs (JIT, unsigned executable memory, library validation bypass).
+        // Without these, Gatekeeper blocks double-click launch on macOS 15+.
+        if (os.isMacOsX()) {
+            def appBundle    = file("${rootDir}/build/release/workctl-gui.app").absolutePath
+            def entitlements = file("src/main/resources/macos-entitlements.plist").absolutePath
+            println "  Re-signing bundle with JVM entitlements..."
+            def proc = new ProcessBuilder(
+                    'codesign', '--force', '--deep', '--sign', '-',
+                    '--entitlements', entitlements, '--options', 'runtime', appBundle)
+                .inheritIO()
+                .start()
+            def rc = proc.waitFor()
+            if (rc != 0) throw new GradleException("codesign failed (exit ${rc})")
+            println "  Signed: ${appBundle}"
+        }
+
         println ""
         println "══════════════════════════════════════════════════════"
         if (os.isWindows()) {
@@ -212,7 +230,7 @@ tasks.register('packageApp', Exec) {
             println ""
             println "  To share:  zip the workctl-gui.app bundle and send it"
             println "  To run:    double-click workctl-gui.app"
-            println "             (if blocked by Gatekeeper: right-click → Open)"
+            println "             (first launch: System Settings → Privacy & Security → Open Anyway)"
             println "  No Java or JavaFX needed on the target machine."
         } else {
             println "  ✓  Packaged → build/release/workctl-gui*.deb"
@@ -244,24 +262,34 @@ tasks.register('packageNative') {
 //
 //  Run:  ./gradlew :gui:packageZip
 //
-tasks.register('packageZip', Zip) {
-    group               = 'workctl distribution'
-    description         = 'Create a ready-to-share zip of the packaged app'
-    dependsOn           packageApp
-
-    def platform = os.isWindows() ? 'windows' : (os.isMacOsX() ? 'macos' : 'linux')
-    archiveFileName          = "workctl-gui-${version}-${platform}.zip"
-    destinationDirectory     = layout.buildDirectory.dir('distributions')
-
-    if (os.isMacOsX()) {
-        from("${rootDir}/build/release") { include 'workctl-gui.app/**' }
-    } else if (os.isWindows()) {
-        from("${rootDir}/build/release/workctl-gui") { into "workctl-gui" }
-    } else {
-        from("${rootDir}/build/release") { include '*.deb' }
-    }
+tasks.register('packageZip') {
+    group           = 'workctl distribution'
+    description     = 'Create a ready-to-share zip of the packaged app'
+    dependsOn       packageApp
 
     doLast {
+        def platform = os.isWindows() ? 'windows' : (os.isMacOsX() ? 'macos' : 'linux')
+        def distDir  = new File("${buildDir}/distributions")
+        distDir.mkdirs()
+        def zipPath  = new File(distDir, "workctl-gui-${version}-${platform}.zip").absolutePath
+
+        if (os.isMacOsX()) {
+            // Use system zip — Gradle's Zip task strips Unix execute permissions,
+            // which breaks the binary inside .app bundles on macOS.
+            def proc = new ProcessBuilder('zip', '-r', zipPath, 'workctl-gui.app')
+                    .directory(file("${rootDir}/build/release"))
+                    .inheritIO()
+                    .start()
+            if (proc.waitFor() != 0) throw new GradleException("zip failed")
+        } else if (os.isWindows()) {
+            ant.zip(destfile: zipPath) {
+                zipfileset(dir: "${rootDir}/build/release/workctl-gui", prefix: 'workctl-gui')
+            }
+        } else {
+            ant.zip(destfile: zipPath) {
+                zipfileset(dir: "${rootDir}/build/release", includes: '*.deb')
+            }
+        }
         println "✓ ZIP → gui/build/distributions/workctl-gui-${version}-${platform}.zip"
     }
 }

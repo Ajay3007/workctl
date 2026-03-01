@@ -5,7 +5,13 @@ import com.workctl.cli.util.ConsolePrinter;
 import picocli.AutoComplete;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "workctl", mixinStandardHelpOptions = true, version = "workctl 0.1.0", subcommands = {
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
+
+@CommandLine.Command(name = "workctl", mixinStandardHelpOptions = true,
+        versionProvider = WorkctlCLI.ManifestVersionProvider.class, subcommands = {
         InitCommand.class,
         ProjectCommand.class,
         LogCommand.class,
@@ -31,5 +37,23 @@ public class WorkctlCLI implements Runnable {
     public static void main(String[] args) {
         int exitCode = new CommandLine(new WorkctlCLI()).execute(args);
         System.exit(exitCode);
+    }
+
+    static class ManifestVersionProvider implements CommandLine.IVersionProvider {
+        @Override
+        public String[] getVersion() throws Exception {
+            Enumeration<URL> resources = WorkctlCLI.class.getClassLoader()
+                    .getResources("META-INF/MANIFEST.MF");
+            while (resources.hasMoreElements()) {
+                Manifest manifest = new Manifest(resources.nextElement().openStream());
+                Attributes attrs = manifest.getMainAttributes();
+                String title   = attrs.getValue("Implementation-Title");
+                String version = attrs.getValue("Implementation-Version");
+                if ("workctl CLI".equals(title) && version != null) {
+                    return new String[]{"workctl " + version};
+                }
+            }
+            return new String[]{"workctl (version unknown)"};
+        }
     }
 }

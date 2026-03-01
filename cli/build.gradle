@@ -132,19 +132,22 @@ tasks.register('cleanPackage') {
     group       = 'workctl distribution'
     description = 'Delete previous jpackage output'
     doLast {
-        def appDir = file("${rootDir}/build/release/workctl")
-        if (appDir.exists()) {
-            appDir.deleteDir()
-            println "  Deleted: ${appDir}"
-        }
         file("${rootDir}/build/release").mkdirs()
+        // jpackage creates workctl/ on Windows/Linux, workctl.app/ on macOS
+        ['workctl', 'workctl.app'].each { name ->
+            def f = file("${rootDir}/build/release/${name}")
+            if (f.exists()) {
+                if (f.isDirectory()) f.deleteDir() else f.delete()
+                println "  Deleted: ${f}"
+            }
+        }
     }
 }
 
 // ── Package as native app (cross-platform) ───────────────────────
 //
 // Windows → build/release/workctl/workctl.exe
-// macOS   → build/release/workctl/workctl
+// macOS   → build/release/workctl.app/Contents/MacOS/workctl
 // Linux   → build/release/workctl/workctl
 //
 // Run:    ./gradlew :cli:packageNative
@@ -174,14 +177,19 @@ tasks.register('packageNative', Exec) {
                 '--dest',         outDir.absolutePath,
         ]
 
-        // --win-console keeps terminal output visible; only valid on Windows
+        // Platform-specific icon
         if (isWindows) {
+            def icon = file("src/main/resources/icon.ico")
+            if (icon.exists()) cmd += ['--icon', icon.absolutePath]
+            // --win-console keeps terminal output visible in cmd/PowerShell
             cmd += ['--win-console']
-        }
-
-        // macOS: required bundle identifier
-        if (isMacOS) {
+        } else if (isMacOS) {
+            def icon = file("src/main/resources/icon.icns")
+            if (icon.exists()) cmd += ['--icon', icon.absolutePath]
             cmd += ['--mac-package-identifier', 'com.workctl.cli']
+        } else {
+            def icon = file("src/main/resources/icon.png")
+            if (icon.exists()) cmd += ['--icon', icon.absolutePath]
         }
 
         commandLine = cmd
@@ -189,7 +197,9 @@ tasks.register('packageNative', Exec) {
     }
 
     doLast {
-        def exe = isWindows ? 'workctl/workctl.exe' : 'workctl/workctl'
+        def exe = isWindows ? 'workctl/workctl.exe'
+                : isMacOS  ? 'workctl.app/Contents/MacOS/workctl'
+                :             'workctl/workctl'
         println ""
         println "✓ CLI packaged → build/release/${exe}"
         println "  No Java needed on the target machine."
@@ -222,19 +232,33 @@ tasks.register('zipDist', Zip) {
 // ── Zip the native package for sharing ───────────────────────────
 // Run:    ./gradlew :cli:packageZip
 
-tasks.register('packageZip', Zip) {
-    group               = 'workctl distribution'
-    description         = 'Zip the native CLI package for sharing (no Java needed)'
-    dependsOn           packageNative
-
-    archiveFileName             = "workctl-${version}-${platformSuffix}.zip"
-    destinationDirectory        = layout.buildDirectory.dir('distributions')
-
-    from("${rootDir}/build/release/workctl")
-    into("workctl-${version}")
+tasks.register('packageZip') {
+    group           = 'workctl distribution'
+    description     = 'Zip the native CLI package for sharing (no Java needed)'
+    dependsOn       packageNative
 
     doLast {
-        println "✓ CLI zip → cli/build/distributions/workctl-${version}-${platformSuffix}.zip"
-        println "  No Java needed. Extract and run workctl-${version}/workctl${isWindows ? '.exe' : ''}"
+        def distDir = new File("${buildDir}/distributions")
+        distDir.mkdirs()
+        def zipPath = new File(distDir, "workctl-${version}-${platformSuffix}.zip").absolutePath
+
+        if (isMacOS) {
+            // Use system zip — Gradle's Zip task strips Unix execute permissions,
+            // which breaks the binary inside .app bundles on macOS.
+            def proc = new ProcessBuilder('zip', '-r', zipPath, 'workctl.app')
+                    .directory(file("${rootDir}/build/release"))
+                    .inheritIO()
+                    .start()
+            if (proc.waitFor() != 0) throw new GradleException("zip failed")
+            println "✓ CLI zip → cli/build/distributions/workctl-${version}-${platformSuffix}.zip"
+            println "  No Java needed. Run: workctl.app/Contents/MacOS/workctl"
+            println "  Symlink: sudo ln -sf \"\$PWD/workctl.app/Contents/MacOS/workctl\" /usr/local/bin/workctl"
+        } else {
+            ant.zip(destfile: zipPath) {
+                zipfileset(dir: "${rootDir}/build/release/workctl", prefix: "workctl-${version}")
+            }
+            println "✓ CLI zip → cli/build/distributions/workctl-${version}-${platformSuffix}.zip"
+            println "  No Java needed. Extract and run workctl-${version}/workctl${isWindows ? '.exe' : ''}"
+        }
     }
 }

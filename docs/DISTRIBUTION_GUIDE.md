@@ -196,12 +196,91 @@ No Java, no JavaFX, no Gradle needed on their machine.
 
 ### On macOS (to build Mac executables)
 
-Before running, update gui/build.gradle ext block with your Mac JavaFX paths:
+#### Prerequisites
+
+##### 1. JDK 17+ with jpackage
 
 ```bash
-macos: [
-  jmods:     "/Library/javafx-sdk-21/javafx-jmods-21",  // ← your Mac path
-  nativeLib: "/Library/javafx-sdk-21/lib",
-  nativeExt: ".dylib"
-]
+java -version          # must be 17+
+which jpackage         # must exist (bundled with JDK since Java 14)
 ```
+
+##### 2. JavaFX 21 SDK for macOS
+
+Download from [gluonhq.com/products/javafx](https://gluonhq.com/products/javafx/)
+— choose: JavaFX 21, macOS, aarch64 (Apple Silicon) or x86_64, SDK type.
+
+You need **two** folders from the download:
+
+- `javafx-sdk-21.x.x/` — the SDK (contains `lib/`)
+- `javafx-jmods-21.x.x/` — the jmods (separate download on the same page)
+
+##### 3. Set paths once in `~/.gradle/gradle.properties`
+
+Create the file if it doesn't exist:
+
+```properties
+javafxJmods=/Users/you/javafx-jmods-21.0.x
+javafxBin=/Users/you/javafx-sdk-21.0.x/lib
+```
+
+These are read by `gui/build.gradle` at build time. Never commit this file.
+
+---
+
+#### Step 1 — Build CLI portable executable
+
+```bash
+./gradlew :cli:packageNative
+```
+
+Output: `build/release/workctl.app/Contents/MacOS/workctl`
+
+Run from terminal:
+
+```bash
+build/release/workctl.app/Contents/MacOS/workctl --version
+```
+
+Symlink for global use:
+
+```bash
+ln -sf "$PWD/build/release/workctl.app/Contents/MacOS/workctl" /usr/local/bin/workctl
+```
+
+#### Step 2 — Build GUI portable app bundle
+
+```bash
+./gradlew :gui:packageApp
+```
+
+Output: `build/release/workctl-gui.app`
+
+- Double-click `workctl-gui.app` to launch
+- First launch on a new machine: **System Settings → Privacy & Security → Open Anyway**
+
+#### Step 3 — Create shareable ZIPs (optional)
+
+```bash
+./gradlew :cli:packageZip   # → cli/build/distributions/workctl-2.0.0-macos.zip
+./gradlew :gui:packageZip   # → gui/build/distributions/workctl-gui-2.0.0-macos.zip
+```
+
+Recipients just unzip and run — no Java or JavaFX needed.
+
+---
+
+#### What the macOS `.app` bundles look like
+
+```text
+build/release/
+  workctl.app/                     ← CLI bundle (run from terminal)
+    Contents/MacOS/workctl         ← the actual executable
+    Contents/runtime/              ← bundled JRE (no Java needed on target)
+  workctl-gui.app/                 ← GUI bundle (double-click to open)
+    Contents/MacOS/workctl-gui
+    Contents/runtime/
+    Contents/app/                  ← JAR files
+```
+
+> macOS treats `.app` folders as single files in Finder. Right-click → Show Package Contents to explore inside.
